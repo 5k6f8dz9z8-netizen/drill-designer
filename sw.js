@@ -1,6 +1,6 @@
 /* Drill Designer service worker.
    Bump CACHE whenever you change index.html so phones pick up the new version. */
-const CACHE = "drill-designer-v1";
+const CACHE = "drill-designer-v2";
 const CORE = [
   "./",
   "./index.html",

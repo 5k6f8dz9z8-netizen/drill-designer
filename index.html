@@ -49,6 +49,8 @@
 
 <script type="text/babel" data-presets="react">
 
+
+
 /* ---------------------------------------------------- standalone runtime */
 const { useState, useRef, useEffect, useMemo, useCallback } = React;
 
@@ -297,6 +299,345 @@ function propagateCarry(next, ballId, from, val) {
     } else break;
   }
 }
+
+/* --------------------------------------------------------------- access */
+/* protect: "app" locks the whole thing, "bank" locks only the drill bank,
+   "off" disables the gate. Codes are stored as salted SHA-256 hashes, never
+   in plain text — open the site with ?admin=1 to turn a new code into a hash. */
+const GATE = {
+  protect: "app",
+  salt: "drill-designer-2026",
+  codes: [
+    { label: "Default — change this", hash: "ae478e38a0fbbac5457a3bcb5d482c4c163cf0835b9cc6e14d6bba9a41b65a7d" },
+  ],
+};
+
+async function sha256(text) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+const gateKey = (code) => sha256(GATE.salt + ":" + String(code).trim().toLowerCase());
+
+function storedAccess() {
+  if (GATE.protect === "off") return true;
+  try {
+    const v = localStorage.getItem("dd-access");
+    return !!v && GATE.codes.some((c) => c.hash === v);
+  } catch (e) { return false; }
+}
+
+/* ---------------------------------------------------------- drill bank */
+
+const SKILLS = [
+  { id: "passing", label: "Passing" },
+  { id: "dribbling", label: "Dribbling" },
+  { id: "shooting", label: "Shooting" },
+  { id: "defending", label: "Defending" },
+];
+const LEVELS = [{ id: 1, label: "Easy" }, { id: 2, label: "Medium" }, { id: 3, label: "Hard" }];
+const AGES = ["U6–U8", "U9–U11", "U12+"];
+const LEVEL_COLOR = { 1: "#30C463", 2: "#FF9F0A", 3: "#FF3B30" };
+
+const CB = "#0A84FF", CR = "#FF3B30", CY = "#FFD60A", CO = "#FF9F0A", CW = "#F5F5F7";
+const pl = (x, y, c, label) => ["player", x, y, { color: c || CB, label: label || "" }];
+const bl = (x, y) => ["ball", x, y, { color: "#FFFFFF" }];
+const cn = (x, y) => ["cone", x, y, { color: CO }];
+const gt = (x, y, rot) => ["gate", x, y, { color: CO, rot: rot || 0, size: 1 }];
+const gl = (x, y, size) => ["goal", x, y, { color: CW, size: size || 2 }];
+
+/* Compiles a compact spec into a full drill: pieces keyed by name, then one
+   frame per phase listing only what moves. */
+function mkBank(meta, pieces, frames) {
+  const ids = {}, objects = [];
+  for (const [k, spec] of Object.entries(pieces)) {
+    const [kind, x, y, extra] = spec;
+    const o = { id: meta.id + "_" + k, kind, x0: x, y0: y, color: CB, label: "", rot: 0, size: 1, ...(extra || {}) };
+    ids[k] = o.id;
+    objects.push(o);
+  }
+  const steps = [];
+  frames.forEach((f, i) => {
+    const prev = steps[i - 1];
+    const positions = prev ? { ...prev.positions } : Object.fromEntries(objects.map((o) => [o.id, { x: o.x0, y: o.y0 }]));
+    const carry = prev ? { ...prev.carry } : {};
+    for (const [k, xy] of Object.entries(f.to || {})) positions[ids[k]] = { x: xy[0], y: xy[1] };
+    for (const [b, p] of Object.entries(f.carry || {})) carry[ids[b]] = p ? ids[p] : null;
+    steps.push({ id: meta.id + "_s" + i, duration: f.d || 1.2, note: f.n || "", positions, moves: {}, carry });
+  });
+  return { ...meta, objects, steps };
+}
+
+const BANK = [
+  /* ------------------------------------------------------------ passing */
+  mkBank(
+    { id: "pass1", name: "Passing gates", skill: "passing", level: 1, ages: "U6–U8", pitch: "grid",
+      players: "Pairs", kit: "6 cones, 1 ball per pair",
+      setup: "Three gates a metre wide, spread around a 20x20 area. Each pair works with one ball and passes through a gate, then moves to a different one.",
+      points: ["Head up and find the gate before you strike it", "Inside of the foot, ankle locked", "Weight it so your partner controls it in one touch", "As soon as you pass, move to the next gate"],
+      easier: "Widen the gates and let them take as many touches as they need.",
+      harder: "One touch only, or count how many gates the pair can use in 60 seconds." },
+    { a: pl(10, 20, CB, "1"), b: pl(28, 20, CB, "2"), ball: bl(11.4, 21),
+      g1: gt(19, 20, 90), g2: gt(19, 10, 90), g3: gt(14, 27, 90) },
+    [
+      { n: "One ball per pair, three gates to aim at", carry: { ball: "a" } },
+      { n: "Pass through the gate, firm and along the ground", to: { ball: [26.6, 21] }, carry: { ball: "b" } },
+      { n: "Both players move to a different gate", to: { a: [12, 10], b: [26, 10], ball: [27.4, 11] } },
+      { n: "Pass back through the new gate. Ten in a row, then change", to: { ball: [13.4, 11] }, carry: { ball: "a" } },
+    ]
+  ),
+  mkBank(
+    { id: "pass2", name: "Pass and follow diamond", skill: "passing", level: 1, ages: "U9–U11", pitch: "grid",
+      players: "4 to 8", kit: "4 cones, 1 ball",
+      setup: "Four cones in a diamond, roughly 12 metres apart, one player on each. Pass around the diamond in one direction, then follow your own pass to the next cone.",
+      points: ["Open your body before the ball arrives so you can see two options", "First touch out of your feet, second touch passes", "Call the name of the player you are passing to", "Jog the follow — this is not a race"],
+      easier: "Take the follow out and just pass around the diamond both ways.",
+      harder: "Two touch, then one touch. Add a second ball going the opposite way." },
+    { a: pl(20, 6, CB, "1"), b: pl(32, 15, CB, "2"), c: pl(20, 24, CB, "3"), d: pl(8, 15, CB, "4"),
+      ball: bl(21.4, 7), c1: cn(20, 4), c2: cn(34, 15), c3: cn(20, 26), c4: cn(6, 15) },
+    [
+      { n: "One player on each cone, ball at the top", carry: { ball: "a" } },
+      { n: "Pass right, then follow your pass", to: { ball: [30.6, 16], a: [26, 10] }, carry: { ball: "b" } },
+      { n: "Ball moves on before the runner arrives", to: { ball: [21.4, 23], b: [26, 21], a: [32, 15] }, carry: { ball: "c" } },
+      { n: "Everyone takes the place of the player they passed to", to: { ball: [9.4, 16], c: [13, 20], b: [20, 24] }, carry: { ball: "d" } },
+    ]
+  ),
+  mkBank(
+    { id: "pass3", name: "4v2 rondo", skill: "passing", level: 2, ages: "U9–U11", pitch: "grid",
+      players: "6", kit: "4 cones, 1 ball, 2 bibs",
+      setup: "A 10x10 square. Four players on the outside, one to a side, two defenders inside. Outside players keep the ball, defenders try to win it. Whoever loses it goes in.",
+      points: ["Scan before the ball comes — know your next pass already", "Move along your side to open a passing line", "A pass between the two defenders is worth double", "Defenders press as a pair, don't both dive in"],
+      easier: "Start 5v1 in a bigger square with unlimited touches until they can keep it.",
+      harder: "Two touches, then one. Shrink the square. Count ten passes for a point." },
+    { t: pl(20, 8, CB, "1"), r: pl(29, 15, CB, "2"), b: pl(20, 22, CB, "3"), l: pl(11, 15, CB, "4"),
+      d1: pl(17, 13, CR, ""), d2: pl(23, 17, CR, ""), ball: bl(21.4, 9),
+      c1: cn(12, 9), c2: cn(28, 9), c3: cn(28, 21), c4: cn(12, 21) },
+    [
+      { n: "Four outside, two in the middle, two touches", carry: { ball: "t" } },
+      { n: "Pass away from the pressure", to: { ball: [12.4, 16], d1: [15, 13] }, carry: { ball: "l" } },
+      { n: "Move along your line to open the angle", to: { ball: [21.4, 23], d1: [14, 17], d2: [20, 19], b: [21, 22] }, carry: { ball: "b" } },
+      { n: "Split them when the gap appears — double points", to: { ball: [28.4, 16], d1: [18, 16], d2: [23, 18] }, carry: { ball: "r" } },
+    ]
+  ),
+  mkBank(
+    { id: "pass4", name: "Up, back and through", skill: "passing", level: 3, ages: "U12+", pitch: "third",
+      players: "4 plus a keeper", kit: "4 cones, 2 bibs, balls, one goal",
+      setup: "A back player, a midfielder with a defender behind them, and a wide runner. The pattern is up into the midfielder, back first time, then through into the run behind.",
+      points: ["The set-back is one touch — pace on it", "The runner goes as the ball travels backwards, not before", "Pass into the space in front of the runner, not at their feet", "Third-man run: the player who receives is the one who never touched it first"],
+      easier: "Remove the defender and walk the pattern through until the timing sticks.",
+      harder: "Live defender, then add a second defender tracking the wide runner." },
+    { a: pl(34, 34, CB, "1"), m: pl(34, 24, CB, "2"), w: pl(52, 28, CB, "3"), d: pl(34, 20, CR, ""),
+      k: pl(34, 5, CY, "GK"), ball: bl(35.4, 35), goal: gl(34, 1.2, 2),
+      c1: cn(20, 30), c2: cn(48, 30) },
+    [
+      { n: "Ball at the back, midfielder marked from behind", carry: { ball: "a" } },
+      { n: "Up: firm pass into the midfielder's feet", to: { ball: [35.4, 25.2] }, d: 1, carry: { ball: "m" } },
+      { n: "Back: set it first time, defender is committed", to: { ball: [35.4, 35.2], w: [50, 21] }, d: 0.8, carry: { ball: "a" } },
+      { n: "Through: switch it into the run behind", to: { ball: [48, 17], w: [46.6, 18] }, d: 1, carry: { ball: "w" } },
+      { n: "Cut it back or finish — swap roles each go", to: { ball: [34, 3.5], w: [44, 12] }, d: 0.7, carry: { ball: null } },
+    ]
+  ),
+
+  /* ---------------------------------------------------------- dribbling */
+  mkBank(
+    { id: "drib1", name: "Dribble the gates", skill: "dribbling", level: 1, ages: "U6–U8", pitch: "grid",
+      players: "Any, one ball each", kit: "8 to 12 cones, 1 ball per player",
+      setup: "Gates a metre wide scattered across a 20x20 grid. Every player has a ball. In 60 seconds, dribble through as many gates as you can — never the same gate twice in a row.",
+      points: ["Little touches, ball stays within a stride", "Head up between touches to pick the next gate", "Use both feet, inside and outside", "Change speed as you come out of a gate"],
+      easier: "Widen the gates, drop to 30 seconds, count together out loud.",
+      harder: "Coloured gates worth different points, or the gate must be taken with the weaker foot." },
+    { p1: pl(8, 8, CB, "1"), b1: bl(9.4, 9), p2: pl(30, 8, CB, "2"), b2: bl(31.4, 9),
+      p3: pl(8, 24, CB, "3"), b3: bl(9.4, 25), p4: pl(30, 24, CB, "4"), b4: bl(31.4, 25),
+      g1: gt(20, 7, 0), g2: gt(12, 15, 90), g3: gt(28, 15, 90), g4: gt(20, 23, 0),
+      g5: gt(9, 20, 45), g6: gt(31, 11, 45) },
+    [
+      { n: "A ball each. 60 seconds, count your gates", carry: { b1: "p1", b2: "p2", b3: "p3", b4: "p4" } },
+      { n: "Head up — pick your gate before you get there", to: { p1: [12, 15], b1: [13.4, 16], p2: [20, 7], b2: [21.4, 8], p3: [20, 23], b3: [21.4, 24], p4: [28, 15], b4: [29.4, 16] } },
+      { n: "Never the same gate twice in a row", to: { p1: [20, 23], b1: [21.4, 24], p2: [28, 15], b2: [29.4, 16], p3: [12, 15], b3: [13.4, 16], p4: [20, 7], b4: [21.4, 8] } },
+    ]
+  ),
+  mkBank(
+    { id: "drib2", name: "King of the ring", skill: "dribbling", level: 2, ages: "U6–U8", pitch: "grid",
+      players: "4 to 8", kit: "8 cones, 1 ball per player",
+      setup: "A circle of cones about 18 metres across. Every player dribbles inside it while trying to knock other players' balls out — and keep their own in.",
+      points: ["Body between the ball and the defender", "Keep the ball on your far foot", "Small touches, spin away from trouble", "Look up — you cannot protect what you cannot see"],
+      easier: "Bigger circle, and a ball knocked out just comes straight back in.",
+      harder: "Shrink the circle. Lose your ball and you join in hunting the others." },
+    { p1: pl(16, 12, CB, "1"), b1: bl(17.2, 13), p2: pl(24, 12, CB, "2"), b2: bl(22.8, 13),
+      p3: pl(16, 18, CB, "3"), b3: bl(17.2, 19), p4: pl(24, 18, CB, "4"), b4: bl(22.8, 19),
+      c1: cn(29, 15), c2: cn(26.4, 21.4), c3: cn(20, 24), c4: cn(13.6, 21.4),
+      c5: cn(11, 15), c6: cn(13.6, 8.6), c7: cn(20, 6), c8: cn(26.4, 8.6) },
+    [
+      { n: "Everyone in the circle with a ball", carry: { b1: "p1", b2: "p2", b3: "p3", b4: "p4" } },
+      { n: "Shield with your body, head up for danger", to: { p1: [18, 14], b1: [19.2, 15], p2: [22, 14], b2: [20.8, 15], p3: [17, 17], b3: [18.2, 18], p4: [23, 17], b4: [21.8, 18] } },
+      { n: "Ball knocked out? Fetch it and come straight back", to: { b3: [12, 22], p3: [15, 19], p1: [19, 16], b1: [20.2, 17] }, carry: { b3: null } },
+    ]
+  ),
+  mkBank(
+    { id: "drib3", name: "1v1 to four gates", skill: "dribbling", level: 2, ages: "U9–U11", pitch: "grid",
+      players: "Pairs", kit: "8 cones, 1 ball per pair",
+      setup: "A 10x10 square with a gate on each side. The attacker scores by dribbling through any gate; the defender tries to stop them. Swap after every go.",
+      points: ["Attack the defender's front foot, then change direction", "Use all four gates — one target makes you predictable", "Change of pace beats the trick every time", "Defender: stay central, don't guard one gate"],
+      easier: "Wider gates and a bigger square. Defender starts passive, walking pace.",
+      harder: "Add a 6-second time limit, or make the far two gates worth double." },
+    { a: pl(20, 18, CB, "A"), d: pl(20, 13, CR, "D"), ball: bl(21.2, 19),
+      g1: gt(20, 7, 0), g2: gt(28, 15, 90), g3: gt(20, 23, 0), g4: gt(12, 15, 90),
+      c1: cn(12, 7), c2: cn(28, 7), c3: cn(28, 23), c4: cn(12, 23) },
+    [
+      { n: "Attacker in the middle, four ways to score", carry: { ball: "a" } },
+      { n: "Move the defender — change your angle", to: { a: [15, 17], ball: [16.2, 18], d: [16, 13.5] } },
+      { n: "Now attack the space they have left", to: { a: [26, 17], ball: [27.2, 18], d: [19, 14] } },
+      { n: "Through the gate with the ball under control", to: { a: [28.5, 15], ball: [29.7, 16], d: [24, 15] }, d: 0.8 },
+    ]
+  ),
+  mkBank(
+    { id: "drib4", name: "Beat the defender to the line", skill: "dribbling", level: 3, ages: "U12+", pitch: "third",
+      players: "Pairs plus a keeper", kit: "4 cones, bibs, balls, one goal",
+      setup: "A channel about 20 metres wide running towards goal. Attacker starts with the ball, defender a couple of metres in front. Get past and shoot inside six seconds.",
+      points: ["Run at the defender, don't drift across them", "Attack at pace, decide late", "Get your body past them, not just the ball", "One touch to beat, next touch to shoot"],
+      easier: "Widen the channel and let the defender start further back.",
+      harder: "Narrow the channel, add a second recovering defender from behind." },
+    { a: pl(34, 30, CB, "A"), d: pl(34, 20, CR, "D"), k: pl(34, 5, CY, "GK"), ball: bl(35.2, 31),
+      goal: gl(34, 1.2, 2), c1: cn(24, 34), c2: cn(44, 34), c3: cn(24, 12), c4: cn(44, 12) },
+    [
+      { n: "Attacker on the ball, defender in front", carry: { ball: "a" } },
+      { n: "Go at them with pace", to: { a: [31, 24], ball: [32.2, 25], d: [32, 20] }, d: 1 },
+      { n: "Move it across their body and accelerate", to: { a: [41, 17], ball: [42.2, 18], d: [35, 19] }, d: 0.9 },
+      { n: "Shot away inside six seconds", to: { ball: [34, 3.5], a: [39, 11], d: [37, 15] }, d: 0.7, carry: { ball: null } },
+    ]
+  ),
+
+  /* ----------------------------------------------------------- shooting */
+  mkBank(
+    { id: "shot1", name: "Control and finish", skill: "shooting", level: 1, ages: "U6–U8", pitch: "third",
+      players: "3 or more", kit: "Balls, one goal, 2 cones",
+      setup: "A server to the side rolls a ball into the shooter, who takes one touch to control and finishes with the second. Everyone gets a go, then swap servers.",
+      points: ["First touch out of your feet, towards goal", "Look at the goal, then look at the ball", "Laces through the middle of the ball, knee over it", "Follow the shot in — rebounds are goals"],
+      easier: "No keeper. Aim at two cones in the corners and take as many touches as needed.",
+      harder: "Two-touch limit, then first time. Server varies the pace and angle." },
+    { s: pl(50, 20, CB, "S"), q: pl(34, 22, CB, "1"), k: pl(34, 5, CY, "GK"),
+      ball: bl(51.2, 21), goal: gl(34, 1.2, 2), c1: cn(28, 14), c2: cn(40, 14) },
+    [
+      { n: "Server to the side, shooter facing goal", carry: { ball: "s" } },
+      { n: "One touch to control, into space in front", to: { ball: [34, 18], q: [34, 19.5] }, d: 1, carry: { ball: "q" } },
+      { n: "Second touch is the finish — across the keeper", to: { ball: [34, 3.5], q: [34, 14] }, d: 0.7, carry: { ball: null } },
+    ]
+  ),
+  mkBank(
+    { id: "shot2", name: "Turn and shoot", skill: "shooting", level: 2, ages: "U9–U11", pitch: "third",
+      players: "4 or more", kit: "Balls, bibs, one goal",
+      setup: "Striker starts with their back to goal and a defender tight behind. Ball is played into their feet — turn away from the pressure and get a shot away.",
+      points: ["Feel where the defender is before the ball arrives", "Touch across your body, away from the contact", "Turn on the half-turn, not a full spin", "Shoot at the first sight of goal, don't take a third touch"],
+      easier: "Defender passive, hands behind back, just providing a body to feel.",
+      harder: "Live defender, two-touch limit, and a second striker arriving for the rebound." },
+    { s: pl(34, 32, CB, "S"), t: pl(34, 18, CB, "9"), d: pl(34, 15, CR, ""), k: pl(34, 5, CY, "GK"),
+      ball: bl(35.2, 33), goal: gl(34, 1.2, 2), c1: cn(24, 22), c2: cn(44, 22) },
+    [
+      { n: "Back to goal, defender tight behind", carry: { ball: "s" } },
+      { n: "Ball into feet — check where the defender is", to: { ball: [34.8, 19.2] }, d: 1, carry: { ball: "t" } },
+      { n: "Turn away from the pressure, not into it", to: { t: [31, 15], ball: [32, 16.2], d: [33.5, 14] }, d: 0.9 },
+      { n: "First sight of goal, shoot", to: { ball: [34, 3.5], t: [31, 10] }, d: 0.7, carry: { ball: null } },
+    ]
+  ),
+  mkBank(
+    { id: "shot3", name: "Cross and finish", skill: "shooting", level: 2, ages: "U9–U11", pitch: "third",
+      players: "5 or more", kit: "Balls, 4 cones, one goal",
+      setup: "A winger drives to the byline and pulls a low cross back. Two runners attack the near and far post. Alternate the side the cross comes from.",
+      points: ["Cross low and hard between the keeper and the defenders", "Near-post runner attacks the front of the six-yard box", "Far-post runner holds their run until the ball is struck", "Get in front of your marker — anything on target scores"],
+      easier: "Serve the cross by hand from the coach so the runs get repeated properly.",
+      harder: "Add a defender per runner, and make it first-time finishes only." },
+    { w: pl(56, 22, CB, "7"), a: pl(30, 18, CB, "9"), b: pl(24, 20, CB, "11"), k: pl(34, 5, CY, "GK"),
+      ball: bl(57.2, 23), goal: gl(34, 1.2, 2), c1: cn(52, 30), c2: cn(52, 16) },
+    [
+      { n: "Winger on the ball, two runners waiting", carry: { ball: "w" } },
+      { n: "Drive to the byline before you look up", to: { w: [56, 10], ball: [57.2, 11] }, d: 1.1 },
+      { n: "Low, hard cross — runners attack both posts", to: { ball: [39, 7.5], a: [38, 8.6], b: [28, 9] }, d: 0.8, carry: { ball: "a" } },
+      { n: "Near post takes it first time", to: { ball: [34, 3.5], a: [36.5, 6] }, d: 0.6, carry: { ball: null } },
+    ]
+  ),
+  mkBank(
+    { id: "shot4", name: "Finish before the recovery", skill: "shooting", level: 3, ages: "U12+", pitch: "third",
+      players: "Pairs plus a keeper", kit: "Balls, bibs, one goal",
+      setup: "The attacker starts with a yard on a defender who is recovering from a wide position. It is a race to the shot — finish before the defender gets across.",
+      points: ["First touch forward, into the space you have won", "Take the shot early — the defender is closing every second", "Across the keeper into the far corner", "Defender: take the inside line, show them wide"],
+      easier: "Give the attacker a bigger head start and take the keeper out.",
+      harder: "Shrink the head start, or add a second defender starting central." },
+    { a: pl(34, 28, CB, "9"), d: pl(46, 30, CR, "D"), k: pl(34, 5, CY, "GK"),
+      ball: bl(35.2, 29), goal: gl(34, 1.2, 2), c1: cn(46, 34) },
+    [
+      { n: "Attacker has a yard, defender recovering wide", carry: { ball: "a" } },
+      { n: "First touch forward, straight at goal", to: { a: [34, 22], ball: [35.2, 23], d: [41, 24] }, d: 1 },
+      { n: "Defender takes the inside line to show them wide", to: { a: [31, 16], ball: [32.2, 17], d: [35, 19] }, d: 0.9 },
+      { n: "Shoot early, across the keeper", to: { ball: [34, 3.5], a: [30, 11], d: [33, 14] }, d: 0.6, carry: { ball: null } },
+    ]
+  ),
+
+  /* ---------------------------------------------------------- defending */
+  mkBank(
+    { id: "def1", name: "Jockey and shepherd", skill: "defending", level: 1, ages: "U9–U11", pitch: "grid",
+      players: "Pairs", kit: "4 cones, 1 ball per pair",
+      setup: "A channel about 16 metres wide. The attacker dribbles forward; the defender's job is not to win it immediately but to slow them down and push them to one side.",
+      points: ["Close the ground fast, then slow down as you arrive", "Side-on, low, about an arm's length away", "Show them to the touchline, away from the middle", "Stay on your feet — no diving in, no slide tackles"],
+      easier: "Attacker at walking pace, defender just mirrors them without tackling.",
+      harder: "Full speed, and the defender must win the ball inside eight seconds." },
+    { a: pl(20, 24, CB, "A"), d: pl(20, 10, CR, "D"), ball: bl(21.2, 25),
+      c1: cn(12, 4), c2: cn(28, 4), c3: cn(12, 26), c4: cn(28, 26) },
+    [
+      { n: "Attacker running at the defender", carry: { ball: "a" } },
+      { n: "Close the ground quickly, then slow down", to: { a: [17, 20], ball: [18.2, 21], d: [18, 14] }, d: 1 },
+      { n: "Side-on, arm's length, show them the line", to: { a: [13, 15], ball: [14.2, 16], d: [15.5, 13] }, d: 1 },
+      { n: "Stay on your feet — take it when the touch is heavy", to: { a: [12, 10], ball: [13.2, 11], d: [14, 9.5] }, d: 0.9 },
+    ]
+  ),
+  mkBank(
+    { id: "def2", name: "Defend the two goals", skill: "defending", level: 2, ages: "U9–U11", pitch: "grid",
+      players: "Pairs", kit: "2 mini goals or 4 cones, bibs, balls",
+      setup: "Two small goals side by side, about 12 metres apart. One attacker, one defender. The attacker picks a goal; the defender has to protect both.",
+      points: ["Start between the two goals, not in front of one", "Move as they move — patience wins the ball", "Force them onto their weaker foot", "Once they commit to a goal, press hard and take it"],
+      easier: "Move the goals closer together and slow the attacker down.",
+      harder: "Three goals, or a 2v1 so the defender has to delay instead of tackle." },
+    { a: pl(20, 22, CB, "A"), d: pl(20, 12, CR, "D"), ball: bl(21.2, 23),
+      g1: gl(12, 6, 1.2), g2: gl(28, 6, 1.2), c1: cn(8, 22), c2: cn(32, 22) },
+    [
+      { n: "Two goals to protect, one defender", carry: { ball: "a" } },
+      { n: "Stay central — don't commit to one goal", to: { a: [24, 18], ball: [25.2, 19], d: [22, 12.5] }, d: 1 },
+      { n: "Move as they move, force the weaker foot", to: { a: [15, 15], ball: [16.2, 16], d: [18, 11.5] }, d: 1 },
+      { n: "They have committed — now press and win it", to: { a: [13, 11], ball: [14.2, 12], d: [14.5, 10] }, d: 0.8 },
+    ]
+  ),
+  mkBank(
+    { id: "def3", name: "2v1 delay", skill: "defending", level: 2, ages: "U12+", pitch: "grid",
+      players: "3 plus a keeper", kit: "1 goal, bibs, balls",
+      setup: "Two attackers against one defender, attacking a goal. The defender cannot win it by diving in — the job is to delay long enough for help to arrive.",
+      points: ["Do not dive in — you only get one go and there are two of them", "Stay between the ball and the goal", "Angle your body so the pass is the hard option", "React to the pass, don't guess it"],
+      easier: "Attackers must complete three passes before they can shoot.",
+      harder: "Add a recovering defender who joins after three seconds, making it 2v2." },
+    { a1: pl(14, 22, CB, "A"), a2: pl(26, 22, CB, "B"), d: pl(20, 11, CR, "D"), k: pl(20, 6, CY, "GK"),
+      ball: bl(15.2, 23), goal: gl(20, 2.5, 1.6) },
+    [
+      { n: "Two attackers, one defender, don't dive in", carry: { ball: "a1" } },
+      { n: "Stay between the ball and the goal", to: { a1: [16, 17], ball: [17.2, 18], d: [19, 13] }, d: 1 },
+      { n: "Delay — buy time for help to get back", to: { a1: [16, 14], ball: [17.2, 15], a2: [25, 16], d: [18.5, 12] }, d: 1 },
+      { n: "React to the pass, press the new carrier", to: { ball: [24, 16.5], d: [22, 12.5] }, d: 0.8, carry: { ball: "a2" } },
+      { n: "Angle first, then block the shot", to: { ball: [20, 4.5], d: [22.5, 10] }, d: 0.6, carry: { ball: null } },
+    ]
+  ),
+  mkBank(
+    { id: "def4", name: "Press the receiver", skill: "defending", level: 3, ages: "U12+", pitch: "grid",
+      players: "4 to 8", kit: "4 cones, bibs, balls",
+      setup: "A server plays into a receiver. The pass is the trigger: the nearest defender presses the receiver while the second covers the next pass. Win it and attack the far line.",
+      points: ["Go as the ball travels, not when it arrives", "Arrive under control — sprint, then brake", "Second defender covers the pass out, not the ball", "Win it on their first touch and go forward immediately"],
+      easier: "Receiver has to take a touch before they can move, so the timing is obvious.",
+      harder: "Add a third attacker so the press has to be coordinated, not individual." },
+    { s: pl(20, 26, CB, "S"), r: pl(20, 16, CB, "R"), p1: pl(14, 9, CR, "1"), p2: pl(26, 9, CR, "2"),
+      ball: bl(21.2, 27), c1: cn(8, 6), c2: cn(32, 6), c3: cn(8, 28), c4: cn(32, 28) },
+    [
+      { n: "Server on the ball, two defenders waiting", carry: { ball: "s" } },
+      { n: "The pass is the trigger — go as it travels", to: { ball: [21.2, 17.2], p1: [17, 12.5] }, d: 0.9, carry: { ball: "r" } },
+      { n: "First presser takes the ball, second covers", to: { p1: [19, 14.5], p2: [24, 13.5], r: [20.5, 17] }, d: 0.8 },
+      { n: "Win it on their first touch and go forward", to: { ball: [19, 15], r: [22, 18], p1: [19.5, 15.5] }, d: 0.7, carry: { ball: null } },
+    ]
+  ),
+];
 
 /* ------------------------------------------------------- svg scene parts */
 
@@ -677,8 +1018,12 @@ function DrillDesigner() {
   const [library, setLibrary] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [editSession, setEditSession] = useState(null);
+  const [bankFilter, setBankFilter] = useState({ skill: "all", level: "all", age: "all" });
+  const [bankItem, setBankItem] = useState(null);
   const [picking, setPicking] = useState(false);
   const [busy, setBusy] = useState(null);
+  const [unlocked, setUnlocked] = useState(storedAccess);
+  const admin = typeof location !== "undefined" && /[?&]admin=1/.test(location.search || "");
 
   const stageRef = useRef(null);
   const svgRef = useRef(null);
@@ -1164,7 +1509,7 @@ function DrillDesigner() {
         ctx.fillStyle = "#FFFFFF";
         roundRect(ctx, padOut, y, W - padOut * 2, rowH, 20);
         ctx.fill();
-        const src = library.find((d) => d.id === it.drillId);
+        const src = library.find((d) => d.id === it.drillId) || BANK.find((d) => d.id === it.drillId);
         const boxW = 420, boxH = rowH - 40;
         if (src) {
           const cell = sceneCanvas(src, src.steps[0].positions, {
@@ -1192,6 +1537,13 @@ function DrillDesigner() {
     setBusy(null);
   };
 
+  const openDrill = (d, fresh) => {
+    setHistory((h) => [...h, drillRef.current]);
+    const copy = deepClone(d);
+    setDrill(fresh ? { ...copy, id: uid() } : copy);
+    setStep(0); setT(0); tRef.current = 0; setSel(null); setSheet(null); setBankItem(null);
+  };
+
   /* ---- session helpers */
   const updateSession = (patch) => {
     const next = { ...editSession, ...patch };
@@ -1208,6 +1560,15 @@ function DrillDesigner() {
   };
 
   /* ------------------------------------------------------------ render */
+  if ((GATE.protect === "app" && !unlocked) || (admin && !unlocked)) {
+    return (
+      <div className="app">
+        <style>{CSS}</style>
+        <Gate admin={admin} onUnlock={() => setUnlocked(true)} />
+      </div>
+    );
+  }
+
   return (
     <div className="app">
       <style>{CSS}</style>
@@ -1430,7 +1791,24 @@ function DrillDesigner() {
                 <li>Drills are stored on this device only, so send a coach the video or image rather than expecting them to have your library.</li>
               </ul>
             </section>
+
+            <section>
+              <h3>Where to start</h3>
+              <ul>
+                <li>The folder icon has a <b>Bank</b> tab: ready-made drills filtered by skill, difficulty and age group, each with a setup, coaching points and how to make it harder or easier.</li>
+                <li>Open one and it becomes yours — change the numbers, the shape or the pitch, and save it alongside your own.</li>
+              </ul>
+            </section>
           </div>
+          {GATE.protect !== "off" && unlocked && (
+            <Row icon={<X size={18} />} label="Lock this device again" sub="You'll need the access code next time"
+              onClick={() => {
+                try { localStorage.removeItem("dd-access"); } catch (e) { }
+                setUnlocked(GATE.protect !== "app");
+                setSheet(null);
+                flash("Locked");
+              }} />
+          )}
         </Sheet>
       )}
 
@@ -1446,14 +1824,15 @@ function DrillDesigner() {
       )}
 
       {sheet === "library" && (
-        <Sheet title={tab === "drills" ? "My drills" : "Sessions"} onClose={() => setSheet(null)}
+        <Sheet title={tab === "drills" ? "My drills" : tab === "bank" ? "Drill bank" : "Sessions"} onClose={() => setSheet(null)}
           head={
             <div className="tabs">
-              <button className={"seg" + (tab === "drills" ? " on" : "")} onClick={() => setTab("drills")}>Drills</button>
+              <button className={"seg" + (tab === "drills" ? " on" : "")} onClick={() => setTab("drills")}>Mine</button>
+              <button className={"seg" + (tab === "bank" ? " on" : "")} onClick={() => setTab("bank")}>Bank</button>
               <button className={"seg" + (tab === "sessions" ? " on" : "")} onClick={() => setTab("sessions")}>Sessions</button>
             </div>
           }>
-          {tab === "drills" ? (
+          {tab === "drills" && (
             <>
               <Row icon={<Plus size={18} />} label="Start a new drill" onClick={() => {
                 const objs = [];
@@ -1466,14 +1845,62 @@ function DrillDesigner() {
                 library.map((d) => (
                   <Row key={d.id} badge={d.steps.length} label={d.name}
                     sub={`${PITCHES[d.pitch] ? PITCHES[d.pitch].label : ""} · ${d.objects.length} items`}
-                    onClick={() => {
-                      setHistory((h) => [...h, drill]);
-                      setDrill(deepClone(d));
-                      setStep(0); setT(0); tRef.current = 0; setSel(null); setSheet(null);
-                    }} />
+                    onClick={() => openDrill(d, false)} />
                 ))}
             </>
-          ) : (
+          )}
+
+          {tab === "bank" && GATE.protect === "bank" && !unlocked && (
+            <Gate inline onUnlock={() => setUnlocked(true)} />
+          )}
+
+          {tab === "bank" && (GATE.protect !== "bank" || unlocked) && (
+            <>
+              <div className="filters">
+                <div className="chips">
+                  <button className={"chip" + (bankFilter.skill === "all" ? " on" : "")} onClick={() => setBankFilter({ ...bankFilter, skill: "all" })}>All skills</button>
+                  {SKILLS.map((s) => (
+                    <button key={s.id} className={"chip" + (bankFilter.skill === s.id ? " on" : "")}
+                      onClick={() => setBankFilter({ ...bankFilter, skill: s.id })}>{s.label}</button>
+                  ))}
+                </div>
+                <div className="chips">
+                  <button className={"chip" + (bankFilter.level === "all" ? " on" : "")} onClick={() => setBankFilter({ ...bankFilter, level: "all" })}>Any level</button>
+                  {LEVELS.map((l) => (
+                    <button key={l.id} className={"chip" + (bankFilter.level === l.id ? " on" : "")}
+                      onClick={() => setBankFilter({ ...bankFilter, level: l.id })}>{l.label}</button>
+                  ))}
+                </div>
+                <div className="chips">
+                  <button className={"chip" + (bankFilter.age === "all" ? " on" : "")} onClick={() => setBankFilter({ ...bankFilter, age: "all" })}>Any age</button>
+                  {AGES.map((a) => (
+                    <button key={a} className={"chip" + (bankFilter.age === a ? " on" : "")}
+                      onClick={() => setBankFilter({ ...bankFilter, age: a })}>{a}</button>
+                  ))}
+                </div>
+              </div>
+              {(() => {
+                const list = BANK.filter((d) =>
+                  (bankFilter.skill === "all" || d.skill === bankFilter.skill) &&
+                  (bankFilter.level === "all" || d.level === bankFilter.level) &&
+                  (bankFilter.age === "all" || d.ages === bankFilter.age)
+                ).sort((a, b) => a.level - b.level);
+                if (!list.length) return <p className="hint">Nothing matches that combination — try widening one of the filters.</p>;
+                return list.map((d) => (
+                  <button key={d.id} className="listrow" onClick={() => { setBankItem(d); setSheet("bankitem"); }}>
+                    <span className="lvl" style={{ background: LEVEL_COLOR[d.level] }}>{d.level}</span>
+                    <span className="rowtext">{d.name}
+                      <em>{(SKILLS.find((s) => s.id === d.skill) || {}).label} · {(LEVELS.find((l) => l.id === d.level) || {}).label} · {d.ages}</em>
+                    </span>
+                    <ChevronRight size={16} className="chev" />
+                  </button>
+                ));
+              })()}
+              <p className="hint">Levels run easy to hard within each skill — work down a column as the group improves.</p>
+            </>
+          )}
+
+          {tab === "sessions" && (
             <>
               <Row icon={<Plus size={18} />} label="New session" onClick={() => {
                 const s = { id: uid(), name: "Sunday session", date: "", items: [] };
@@ -1488,6 +1915,38 @@ function DrillDesigner() {
                 ))}
             </>
           )}
+        </Sheet>
+      )}
+
+      {sheet === "bankitem" && bankItem && (
+        <Sheet title={bankItem.name} onClose={() => { setBankItem(null); setSheet("library"); }}>
+          <div className="help">
+            <div className="meta">
+              <span className="lvl" style={{ background: LEVEL_COLOR[bankItem.level] }}>{bankItem.level}</span>
+              <span>{(SKILLS.find((s) => s.id === bankItem.skill) || {}).label} · {(LEVELS.find((l) => l.id === bankItem.level) || {}).label} · {bankItem.ages}</span>
+            </div>
+            <section>
+              <h3>Set up</h3>
+              <ul>
+                <li>{bankItem.setup}</li>
+                <li><b>Players:</b> {bankItem.players}</li>
+                <li><b>Kit:</b> {bankItem.kit}</li>
+              </ul>
+            </section>
+            <section>
+              <h3>Coaching points</h3>
+              <ul>{bankItem.points.map((p, i) => <li key={i}>{p}</li>)}</ul>
+            </section>
+            <section>
+              <h3>Progression</h3>
+              <ul>
+                <li><b>Too hard?</b> {bankItem.easier}</li>
+                <li><b>Too easy?</b> {bankItem.harder}</li>
+              </ul>
+            </section>
+          </div>
+          <Row icon={<Play size={18} />} label="Open in the designer" sub={`${bankItem.steps.length} phases — edit it like your own`}
+            onClick={() => openDrill(bankItem, true)} />
         </Sheet>
       )}
 
@@ -1515,10 +1974,9 @@ function DrillDesigner() {
                 <button className="ic sm" onClick={() => moveItem(i, -1)} disabled={i === 0}><ChevronUp size={14} /></button>
                 <button className="ic sm" onClick={() => moveItem(i, 1)} disabled={i === editSession.items.length - 1}><ChevronDown size={14} /></button>
                 <button className="ic sm" onClick={() => {
-                  const d = library.find((x) => x.id === it.drillId);
+                  const d = library.find((x) => x.id === it.drillId) || BANK.find((x) => x.id === it.drillId);
                   if (!d) { flash("That drill is no longer in your library"); return; }
-                  setHistory((h) => [...h, drill]);
-                  setDrill(deepClone(d)); setStep(0); setT(0); tRef.current = 0; setSel(null); setSheet(null);
+                  openDrill(d, !library.some((x) => x.id === it.drillId));
                 }}><ImageIcon size={14} /></button>
                 <button className="ic sm danger" onClick={() => updateSession({ items: editSession.items.filter((_, j) => j !== i) })}><Trash2 size={14} /></button>
               </div>
@@ -1526,13 +1984,23 @@ function DrillDesigner() {
           ))}
 
           {picking ? (
-            library.length === 0 ? <p className="hint">Save a drill first, then it will show up here.</p> :
-              library.map((d) => (
-                <Row key={d.id} badge={d.steps.length} label={d.name} sub="Add to session" onClick={() => {
+            <>
+              {library.map((d) => (
+                <Row key={d.id} badge={d.steps.length} label={d.name} sub="From your drills" onClick={() => {
                   updateSession({ items: [...(editSession.items || []), { id: uid(), drillId: d.id, name: d.name, minutes: 10, note: "" }] });
                   setPicking(false);
                 }} />
-              ))
+              ))}
+              {BANK.map((d) => (
+                <Row key={d.id} label={d.name}
+                  sub={`Bank · ${(LEVELS.find((l) => l.id === d.level) || {}).label} · ${d.ages}`}
+                  icon={<span className="lvl" style={{ background: LEVEL_COLOR[d.level] }}>{d.level}</span>}
+                  onClick={() => {
+                    updateSession({ items: [...(editSession.items || []), { id: uid(), drillId: d.id, name: d.name, minutes: 10, note: d.setup }] });
+                    setPicking(false);
+                  }} />
+              ))}
+            </>
           ) : (
             <Row icon={<Plus size={18} />} label="Add a drill" onClick={() => setPicking(true)} />
           )}
@@ -1562,6 +2030,89 @@ function DrillDesigner() {
 }
 
 /* ------------------------------------------------------------ small ui */
+
+function Gate({ onUnlock, admin, inline }) {
+  const [code, setCode] = useState("");
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [made, setMade] = useState(null);
+  const [newCode, setNewCode] = useState("");
+
+  const submit = async () => {
+    if (!code.trim() || busy) return;
+    setBusy(true); setErr("");
+    try {
+      const h = await gateKey(code);
+      if (GATE.codes.some((c) => c.hash === h)) {
+        try { localStorage.setItem("dd-access", h); } catch (e) { }
+        onUnlock();
+      } else setErr("That code isn't right");
+    } catch (e) {
+      setErr("Access codes need the site served over https");
+    }
+    setBusy(false);
+  };
+
+  const form = (
+    <>
+      <div className="gateform">
+        <input className="gateinput" type="password" value={code} autoComplete="off"
+          placeholder="Access code" onChange={(e) => { setCode(e.target.value); setErr(""); }}
+          onKeyDown={(e) => { if (e.key === "Enter") submit(); }} />
+        <button className="gatebtn" onClick={submit} disabled={busy || !code.trim()}>Unlock</button>
+      </div>
+      {err ? <p className="gateerr">{err}</p> : null}
+    </>
+  );
+
+  if (inline) {
+    return (
+      <div className="lockcard">
+        <h3>The drill bank is locked</h3>
+        <p>Sixteen ready-made drills across passing, dribbling, shooting and defending, each with coaching points and progressions.</p>
+        {form}
+      </div>
+    );
+  }
+
+  return (
+    <div className="gate">
+      <div className="gatecard">
+        <svg width="66" height="66" viewBox="0 0 66 66" aria-hidden="true">
+          <rect x="1" y="1" width="64" height="64" rx="15" fill="#4E9E63" />
+          <rect x="8" y="8" width="50" height="50" rx="5" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2" />
+          <line x1="8" y1="33" x2="58" y2="33" stroke="rgba(255,255,255,0.6)" strokeWidth="2" />
+          <line x1="22" y1="46" x2="42" y2="26" stroke="#fff" strokeWidth="3.4" strokeDasharray="4 4" strokeLinecap="round" />
+          <polygon points="46,22 38,25 43,30" fill="#fff" />
+          <circle cx="22" cy="46" r="5" fill="#fff" />
+          <circle cx="22" cy="46" r="1.8" fill="#1C1C1E" />
+        </svg>
+        <h1>Drill Designer</h1>
+        <p>Enter your access code to open the app. Ask your club or coach if you don't have one.</p>
+        {form}
+      </div>
+
+      {admin && (
+        <div className="adminbox">
+          <h3>Make an access code</h3>
+          <p>Type a code, then paste the line below into the <b>GATE.codes</b> list in index.html. The code itself is never stored in the file.</p>
+          <div className="gateform">
+            <input className="gateinput" value={newCode} placeholder="e.g. larkhall-2026"
+              onChange={(e) => setNewCode(e.target.value)} />
+            <button className="gatebtn" onClick={async () => {
+              if (!newCode.trim()) return;
+              try { setMade({ code: newCode.trim().toLowerCase(), hash: await gateKey(newCode) }); }
+              catch (e) { setMade(null); }
+            }}>Make</button>
+          </div>
+          {made && (
+            <pre className="hashout">{`{ label: "${made.code}", hash: "${made.hash}" },`}</pre>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function Row({ icon, badge, label, sub, onClick, danger }) {
   return (
@@ -1713,12 +2264,52 @@ input { font: inherit; }
 .listrow:active { background: #EDEDF2; }
 .listrow.danger { color: #FF3B30; }
 .listrow.danger .rowicon { color: #FF3B30; }
-.rowicon { flex: 0 0 auto; color: #007AFF; display: grid; place-items: center; width: 22px; }
+.rowicon { flex: 0 0 auto; color: #007AFF; display: grid; place-items: center; min-width: 22px; }
 .rowtext { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .rowtext em { font-style: normal; font-size: 12px; color: #8E8E93; }
 .chev { flex: 0 0 auto; color: #C7C7CC; }
 .mini { flex: 0 0 auto; width: 26px; height: 26px; border-radius: 8px; background: #007AFF; color: #fff; font-size: 12px; font-weight: 700; display: grid; place-items: center; }
 .hint { margin: 2px 4px 4px; font-size: 13px; color: #8E8E93; line-height: 1.45; }
+
+.gate {
+  position: absolute; inset: 0; background: #0E3524; color: #fff; z-index: 60;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 18px; padding: 24px; overflow-y: auto;
+}
+.gatecard { display: flex; flex-direction: column; align-items: center; gap: 10px; max-width: 320px; width: 100%; }
+.gatecard h1 { margin: 4px 0 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+.gatecard p { margin: 0; font-size: 14px; line-height: 1.45; color: rgba(255,255,255,0.62); text-align: center; }
+.gateform { display: flex; gap: 8px; width: 100%; margin-top: 8px; }
+.gateinput {
+  flex: 1; min-width: 0; border: none; outline: none; border-radius: 11px; padding: 12px 14px;
+  font-size: 16px; background: rgba(255,255,255,0.12); color: #fff;
+}
+.gateinput::placeholder { color: rgba(255,255,255,0.4); }
+.gatebtn { background: #0A84FF; color: #fff; border-radius: 11px; padding: 12px 18px; font-size: 15px; font-weight: 600; flex: 0 0 auto; }
+.gatebtn:disabled { opacity: 0.4; }
+.gateerr { margin: 2px 0 0; font-size: 13px; color: #FF9F9F; text-align: center; }
+.adminbox { background: rgba(255,255,255,0.08); border-radius: 14px; padding: 16px; max-width: 400px; width: 100%; }
+.adminbox h3 { margin: 0 0 6px; font-size: 15px; font-weight: 700; }
+.adminbox p { margin: 0; font-size: 12.5px; line-height: 1.45; color: rgba(255,255,255,0.6); }
+.adminbox b { color: #fff; }
+.hashout {
+  margin: 10px 0 0; padding: 10px; border-radius: 9px; background: rgba(0,0,0,0.35);
+  font-size: 11px; line-height: 1.4; white-space: pre-wrap; word-break: break-all;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #9BE6B4; user-select: all;
+}
+.lockcard { background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.lockcard h3 { margin: 0 0 6px; font-size: 15px; font-weight: 700; }
+.lockcard p { margin: 0; font-size: 13px; line-height: 1.45; color: #6C6C70; }
+.lockcard .gateinput { background: rgba(118,118,128,0.12); color: #1C1C1E; }
+.lockcard .gateinput::placeholder { color: #8E8E93; }
+.lockcard .gateerr { color: #FF3B30; text-align: left; }
+
+.filters { display: flex; flex-direction: column; gap: 6px; margin-bottom: 2px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { padding: 6px 11px; border-radius: 999px; font-size: 12.5px; font-weight: 500; background: #fff; color: #3C3C43; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.chip.on { background: #007AFF; color: #fff; font-weight: 600; }
+.lvl { flex: 0 0 auto; width: 24px; height: 24px; border-radius: 12px; color: #fff; font-size: 12px; font-weight: 700; display: grid; place-items: center; }
+.meta { display: flex; align-items: center; gap: 9px; font-size: 13px; color: #6C6C70; padding: 0 2px 2px; }
 
 .help { display: flex; flex-direction: column; gap: 10px; }
 .help section { background: #fff; border-radius: 13px; padding: 13px 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
