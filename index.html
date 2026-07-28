@@ -1,0 +1,1767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Drill Designer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="description" content="Build, simulate and share football training drills." />
+<meta name="theme-color" content="#0E3524" />
+<link rel="manifest" href="./manifest.webmanifest" />
+<link rel="apple-touch-icon" href="./icon-180.png" />
+<link rel="icon" type="image/png" href="./icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Drills" />
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; overscroll-behavior: none; background: #0E3524; }
+  body { position: fixed; inset: 0; overflow: hidden; -webkit-user-select: none; user-select: none; }
+  #root { position: fixed; inset: 0; }
+  #splash {
+    position: fixed; inset: 0; display: flex; flex-direction: column; gap: 14px;
+    align-items: center; justify-content: center; background: #0E3524; color: #fff;
+    font: 500 15px -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  #splash .ring { width: 28px; height: 28px; border-radius: 14px; border: 3px solid rgba(255,255,255,.25); border-top-color: #fff; animation: sp .8s linear infinite; }
+  @keyframes sp { to { transform: rotate(360deg) } }
+  #splash small { opacity: .55; max-width: 240px; text-align: center; line-height: 1.4; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div id="splash">
+  <div class="ring"></div>
+  <span>Loading Drill Designer</span>
+  <small id="splashnote"></small>
+</div>
+
+<script>
+  // If the libraries can't be reached on a first visit, say so plainly.
+  setTimeout(function () {
+    var n = document.getElementById("splashnote");
+    if (n && !window.React) n.textContent = "Still loading. The first visit needs an internet connection; after that it works offline.";
+  }, 4000);
+</script>
+
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
+
+<script type="text/babel" data-presets="react">
+
+/* ---------------------------------------------------- standalone runtime */
+const { useState, useRef, useEffect, useMemo, useCallback } = React;
+
+const deepClone = (v) => (typeof structuredClone === "function" ? structuredClone(v) : JSON.parse(JSON.stringify(v)));
+
+/* Saved drills and sessions live in this browser only. */
+const store = {
+  async get(key) {
+    const v = localStorage.getItem(key);
+    if (v == null) throw new Error("not found");
+    return { key, value: v };
+  },
+  async set(key, value) {
+    localStorage.setItem(key, value);
+    return { key, value };
+  },
+};
+
+/* ------------------------------------------------------------- icon set */
+const Svg = (p) => (
+  <svg className={p.className} style={p.style} width={p.size || 20} height={p.size || 20}
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+    strokeLinecap="round" strokeLinejoin="round">{p.children}</svg>
+);
+const Play = (p) => <Svg {...p}><polygon points="6 3 20 12 6 21" fill="currentColor" stroke="none" /></Svg>;
+const Pause = (p) => <Svg {...p}><rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor" stroke="none" /><rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor" stroke="none" /></Svg>;
+const Plus = (p) => <Svg {...p}><path d="M12 5v14M5 12h14" /></Svg>;
+const Trash2 = (p) => <Svg {...p}><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v5M14 11v5" /></Svg>;
+const Share2 = (p) => <Svg {...p}><path d="M12 15V3M8 7l4-4 4 4M4 13v6a2 2 0 002 2h12a2 2 0 002-2v-6" /></Svg>;
+const Download = (p) => <Svg {...p}><path d="M12 3v12M8 11l4 4 4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" /></Svg>;
+const RotateCw = (p) => <Svg {...p}><path d="M20 12a8 8 0 1 1-2.3-5.6" /><path d="M20 4v5h-5" /></Svg>;
+const Copy = (p) => <Svg {...p}><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></Svg>;
+const X = (p) => <Svg {...p}><path d="M18 6L6 18M6 6l12 12" /></Svg>;
+const Film = (p) => <Svg {...p}><rect x="2" y="4" width="20" height="16" rx="2" /><path d="M7 4v16M17 4v16M2 12h20M2 8h5M2 16h5M17 8h5M17 16h5" /></Svg>;
+const Grid3x3 = (p) => <Svg {...p}><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 3v18M15 3v18M3 9h18M3 15h18" /></Svg>;
+const Maximize2 = (p) => <Svg {...p}><path d="M8 3H5a2 2 0 00-2 2v3M16 3h3a2 2 0 012 2v3M21 16v3a2 2 0 01-2 2h-3M3 16v3a2 2 0 002 2h3" /></Svg>;
+const FolderOpen = (p) => <Svg {...p}><path d="M4 19V6a1 1 0 011-1h4l2 2h7a1 1 0 011 1v2" /><path d="M2.6 19.4l2.2-7.1a1 1 0 01.95-.7h15.2a1 1 0 01.95 1.3L19.6 20H4a1.4 1.4 0 01-1.4-.6z" /></Svg>;
+const SkipBack = (p) => <Svg {...p}><path d="M19 20L9 12l10-8z" fill="currentColor" stroke="none" /><path d="M5 19V5" /></Svg>;
+const Route = (p) => <Svg {...p}><circle cx="6" cy="19" r="2.6" /><circle cx="18" cy="5" r="2.6" /><path d="M9 19h4a4 4 0 004-4V9" strokeDasharray="3 2.4" /></Svg>;
+const Check = (p) => <Svg {...p}><path d="M20 6L9 17l-5-5" /></Svg>;
+const Undo2 = (p) => <Svg {...p}><path d="M9 14L4 9l5-5" /><path d="M4 9h10a6 6 0 010 12h-3" /></Svg>;
+const ChevronRight = (p) => <Svg {...p}><path d="M9 18l6-6-6-6" /></Svg>;
+const ChevronUp = (p) => <Svg {...p}><path d="M18 15l-6-6-6 6" /></Svg>;
+const ChevronDown = (p) => <Svg {...p}><path d="M6 9l6 6 6-6" /></Svg>;
+const ImageIcon = (p) => <Svg {...p}><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" /></Svg>;
+const ClipboardList = (p) => <Svg {...p}><rect x="8" y="2" width="8" height="4" rx="1" /><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2" /><path d="M8 11h8M8 15h6" /></Svg>;
+const Link2Off = (p) => <Svg {...p}><path d="M9 17H7A5 5 0 017 7h2M15 7h2a5 5 0 013.6 8.4M8 12h3M3 3l18 18" /></Svg>;
+const Info = (p) => <Svg {...p}><circle cx="12" cy="12" r="9" /><path d="M12 16v-4M12 8h.01" /></Svg>;
+
+/* ---------------------------------------------------------------- tokens */
+
+const KIT = [
+  { name: "Red", c: "#FF3B30", t: "#fff" },
+  { name: "Blue", c: "#0A84FF", t: "#fff" },
+  { name: "Green", c: "#30C463", t: "#fff" },
+  { name: "Orange", c: "#FF9F0A", t: "#fff" },
+  { name: "Yellow", c: "#FFD60A", t: "#1C1C1E" },
+  { name: "Purple", c: "#BF5AF2", t: "#fff" },
+  { name: "Pink", c: "#FF375F", t: "#fff" },
+  { name: "Sky", c: "#5AC8FA", t: "#0B3B44" },
+  { name: "Black", c: "#1C1C1E", t: "#fff" },
+  { name: "White", c: "#F5F5F7", t: "#1C1C1E" },
+];
+
+const PITCHES = {
+  grid: { label: "Training grid", w: 40, h: 30, marks: "grid" },
+  third: { label: "Final third", w: 68, h: 42, marks: "end" },
+  half: { label: "Half pitch", w: 68, h: 52.5, marks: "end" },
+  full: { label: "Full pitch", w: 68, h: 105, marks: "full" },
+};
+
+const TURF = "#4E9E63";
+const TURF_ALT = "#4A9760";
+const LINE = "rgba(255,255,255,0.82)";
+const SURROUND = "#0E3524";
+const UI_FONT = '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Helvetica, Arial, sans-serif';
+
+const MOVE_LABEL = { run: "Run", pass: "Pass", dribble: "Dribble", shot: "Shot" };
+const HOLD_IN = 0.5, HOLD_OUT = 0.9;
+
+/* --------------------------------------------------------------- helpers */
+
+const uid = () => Math.random().toString(36).slice(2, 9);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const same = (a, b) => a && b && Math.abs(a.x - b.x) < 1e-6 && Math.abs(a.y - b.y) < 1e-6;
+
+function trimSeg(x1, y1, x2, y2, s, e) {
+  const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy) || 1;
+  const ux = dx / L, uy = dy / L;
+  return [x1 + ux * s, y1 + uy * s, x2 - ux * e, y2 - uy * e];
+}
+
+function headPts(x1, y1, x2, y2, size) {
+  const a = Math.atan2(y2 - y1, x2 - x1);
+  return [
+    [x2, y2],
+    [x2 - Math.cos(a - 0.42) * size, y2 - Math.sin(a - 0.42) * size],
+    [x2 - Math.cos(a + 0.42) * size, y2 - Math.sin(a + 0.42) * size],
+  ];
+}
+const ptsStr = (pts) => pts.map((p) => p.join(",")).join(" ");
+
+function wavy(x1, y1, x2, y2, amp) {
+  const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy);
+  if (L < 0.5) return `M${x1},${y1}`;
+  const ux = dx / L, uy = dy / L, px = -uy, py = ux;
+  const n = Math.max(2, Math.round(L / 2.4));
+  let d = `M${x1},${y1}`;
+  for (let i = 1; i <= n; i++) {
+    const tm = (i - 0.5) / n, t1 = i / n, sg = i % 2 ? 1 : -1;
+    d += ` Q${x1 + ux * L * tm + px * amp * 2 * sg},${y1 + uy * L * tm + py * amp * 2 * sg} ${x1 + ux * L * t1},${y1 + uy * L * t1}`;
+  }
+  return d;
+}
+
+/* ---------------------------------------------------------- drill model */
+
+const carryOf = (step, ballId) => (step && step.carry && step.carry[ballId]) || null;
+
+function blankSteps(objects) {
+  return [{
+    id: uid(), duration: 1.2, note: "",
+    positions: Object.fromEntries(objects.map((o) => [o.id, { x: o.x0, y: o.y0 }])),
+    moves: {}, carry: {},
+  }];
+}
+
+function starterDrill() {
+  const mk = (kind, x, y, extra = {}) => ({ id: uid(), kind, x0: x, y0: y, color: "#0A84FF", label: "", rot: 0, size: 1, ...extra });
+  const goal = mk("goal", 20, 1.2, { color: "#F5F5F7", size: 2 });
+  const gk = mk("player", 20, 5, { color: "#FFD60A", label: "GK" });
+  const d1 = mk("player", 20, 11, { color: "#FF3B30", label: "D" });
+  const c1 = mk("cone", 12, 22, { color: "#FF9F0A" });
+  const c2 = mk("cone", 28, 22, { color: "#FF9F0A" });
+  const p1 = mk("player", 8, 26, { color: "#0A84FF", label: "1" });
+  const p2 = mk("player", 20, 18, { color: "#0A84FF", label: "2" });
+  const p3 = mk("player", 32, 26, { color: "#0A84FF", label: "3" });
+  const ball = mk("ball", 9.2, 27, { color: "#FFFFFF" });
+  const objects = [goal, gk, d1, c1, c2, p1, p2, p3, ball];
+
+  const steps = blankSteps(objects);
+  steps[0].carry = { [ball.id]: p1.id };
+  steps[0].note = "Start wide, ball at feet";
+  const push = (edits, carry, note, duration) => {
+    const prev = steps[steps.length - 1];
+    const positions = { ...prev.positions };
+    for (const [id, xy] of Object.entries(edits)) positions[id] = { x: xy[0], y: xy[1] };
+    steps.push({ id: uid(), duration: duration || 1.2, note: note || "", positions, moves: {}, carry: { ...prev.carry, ...carry } });
+  };
+  push({ [ball.id]: [21.2, 19.2], [p1.id]: [13, 20], [p3.id]: [27, 20] }, { [ball.id]: p2.id }, "Pass in, both wide players push on");
+  push({ [ball.id]: [28.2, 21.2], [p2.id]: [20, 12] }, { [ball.id]: p3.id }, "Set out to the overlap");
+  push({ [ball.id]: [20, 3.5], [p3.id]: [25, 15], [p2.id]: [19, 8] }, { [ball.id]: null }, "First-time finish across the keeper", 0.7);
+
+  return { id: uid(), name: "Pass, overlap, finish", pitch: "grid", objects, steps };
+}
+
+function timeline(drill) {
+  const segs = drill.steps.slice(1).map((s) => s.duration || 1.2);
+  return { segs, total: segs.reduce((a, b) => a + b, 0) };
+}
+
+function tAtSeconds(sec, segs) {
+  let s = sec;
+  for (let i = 0; i < segs.length; i++) {
+    if (s <= segs[i]) return i + (segs[i] ? s / segs[i] : 1);
+    s -= segs[i];
+  }
+  return segs.length;
+}
+
+function positionsAt(drill, tt) {
+  const N = drill.steps.length;
+  if (N === 1) return drill.steps[0].positions;
+  const i = clamp(Math.floor(tt), 0, N - 2);
+  const f = ease(clamp(tt - i, 0, 1));
+  const a = drill.steps[i].positions, b = drill.steps[i + 1].positions;
+  const out = {};
+  for (const o of drill.objects) {
+    const pa = a[o.id] || { x: o.x0, y: o.y0 };
+    const pb = b[o.id] || pa;
+    let x = lerp(pa.x, pb.x, f), y = lerp(pa.y, pb.y, f);
+    if (o.kind === "ball" && moveTypeFor(drill, i + 1, o) === "dribble") {
+      const dx = pb.x - pa.x, dy = pb.y - pa.y, L = Math.hypot(dx, dy) || 1;
+      const off = Math.sin(f * Math.PI * 3) * 0.5;
+      x += (-dy / L) * off; y += (dx / L) * off;
+    }
+    out[o.id] = { x, y };
+  }
+  return out;
+}
+
+function nearGoal(drill, i, ballId) {
+  const p = drill.steps[i].positions[ballId];
+  if (!p) return false;
+  return drill.objects.some((o) => {
+    if (o.kind !== "goal") return false;
+    const g = drill.steps[i].positions[o.id];
+    return g && Math.hypot(g.x - p.x, g.y - p.y) < 5.5;
+  });
+}
+
+function moveTypeFor(drill, i, o) {
+  const ex = drill.steps[i].moves[o.id];
+  if (ex) return ex;
+  if (o.kind !== "ball") return "run";
+  const prev = carryOf(drill.steps[i - 1], o.id);
+  const cur = carryOf(drill.steps[i], o.id);
+  if (prev && cur && prev === cur) return "dribble";
+  if (prev && !cur && nearGoal(drill, i, o.id)) return "shot";
+  return "pass";
+}
+
+function pathsFor(drill, step, all) {
+  const N = drill.steps.length;
+  const range = all ? Array.from({ length: N - 1 }, (_, i) => i + 1) : step > 0 ? [step] : [];
+  const list = [];
+  for (const si of range) {
+    for (const o of drill.objects) {
+      const pa = drill.steps[si - 1].positions[o.id], pb = drill.steps[si].positions[o.id];
+      if (!pa || !pb) continue;
+      list.push({
+        key: si + o.id, from: pa, to: pb,
+        type: moveTypeFor(drill, si, o),
+        color: o.kind === "ball" ? "#FFFFFF" : o.color,
+      });
+    }
+  }
+  return list;
+}
+
+function propagatePos(next, oid, from, newP) {
+  const old = next.steps[from].positions[oid];
+  for (let i = from; i < next.steps.length; i++) {
+    if (i === from || same(next.steps[i].positions[oid], old)) next.steps[i].positions[oid] = { ...newP };
+    else break;
+  }
+}
+
+function propagateCarry(next, ballId, from, val) {
+  const old = carryOf(next.steps[from], ballId);
+  for (let i = from; i < next.steps.length; i++) {
+    if (i === from || carryOf(next.steps[i], ballId) === old) {
+      next.steps[i].carry = { ...(next.steps[i].carry || {}), [ballId]: val };
+    } else break;
+  }
+}
+
+/* ------------------------------------------------------- svg scene parts */
+
+function Markings({ p }) {
+  const L = { stroke: LINE, strokeWidth: 0.3, fill: "none" };
+  const { w, h, marks } = p;
+  const parts = [<rect key="b" x="0" y="0" width={w} height={h} {...L} />];
+
+  const endAt = (y0, dir) => {
+    const g = [];
+    if (w >= 60) {
+      g.push(<rect key={"pa" + y0} x={(w - 40.32) / 2} y={dir > 0 ? y0 : y0 - 16.5} width={40.32} height={16.5} {...L} />);
+      g.push(<rect key={"ga" + y0} x={(w - 18.32) / 2} y={dir > 0 ? y0 : y0 - 5.5} width={18.32} height={5.5} {...L} />);
+      g.push(<circle key={"ps" + y0} cx={w / 2} cy={y0 + dir * 11} r={0.28} fill={LINE} />);
+      const ay = y0 + dir * 16.5;
+      g.push(<path key={"pk" + y0} d={`M${w / 2 - 7.31},${ay} A9.15 9.15 0 0 ${dir > 0 ? 0 : 1} ${w / 2 + 7.31},${ay}`} {...L} />);
+    }
+    g.push(<rect key={"gl" + y0} x={w / 2 - 3.66} y={dir > 0 ? y0 - 2 : y0} width={7.32} height={2} {...L} strokeWidth={0.22} />);
+    return g;
+  };
+
+  if (marks === "full") {
+    parts.push(<line key="hw" x1="0" y1={h / 2} x2={w} y2={h / 2} {...L} />);
+    parts.push(<circle key="cc" cx={w / 2} cy={h / 2} r={9.15} {...L} />);
+    parts.push(<circle key="cs" cx={w / 2} cy={h / 2} r={0.3} fill={LINE} />);
+    parts.push(...endAt(0, 1), ...endAt(h, -1));
+  } else if (marks === "end") {
+    parts.push(...endAt(0, 1));
+    parts.push(<path key="arc" d={`M${w / 2 - 9.15},${h} A9.15 9.15 0 0 1 ${w / 2 + 9.15},${h}`} {...L} />);
+  } else {
+    for (let x = 10; x < w; x += 10)
+      parts.push(<line key={"gx" + x} x1={x} y1="0" x2={x} y2={h} stroke="rgba(255,255,255,0.16)" strokeWidth="0.18" strokeDasharray="1 1.6" />);
+    for (let y = 10; y < h; y += 10)
+      parts.push(<line key={"gy" + y} x1="0" y1={y} x2={w} y2={y} stroke="rgba(255,255,255,0.16)" strokeWidth="0.18" strokeDasharray="1 1.6" />);
+  }
+  return <g>{parts}</g>;
+}
+
+function Turf({ p }) {
+  const n = Math.round(p.h / 7);
+  return (
+    <g>
+      {Array.from({ length: n }, (_, i) => (
+        <rect key={i} x="0" y={(i * p.h) / n} width={p.w} height={p.h / n + 0.02} fill={i % 2 ? TURF_ALT : TURF} />
+      ))}
+    </g>
+  );
+}
+
+function Piece({ o, pos, selected, playing, carrying }) {
+  const s = o.size || 1;
+  let body = null;
+
+  if (o.kind === "player") {
+    const kit = KIT.find((k) => k.c === o.color);
+    body = (
+      <>
+        {carrying && <circle cx="0" cy="0" r="2.35" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="0.16" strokeDasharray="0.9 0.7" />}
+        <circle cx="0" cy="0.25" r={1.55} fill="rgba(0,0,0,0.28)" />
+        <circle cx="0" cy="0" r={1.55} fill={o.color} stroke="rgba(255,255,255,0.9)" strokeWidth="0.28" />
+        {o.label ? (
+          <text x="0" y="0.62" textAnchor="middle" fontFamily={UI_FONT} fontSize="1.6" fontWeight="600" fill={kit ? kit.t : "#fff"}>
+            {o.label.slice(0, 3)}
+          </text>
+        ) : null}
+      </>
+    );
+  } else if (o.kind === "cone") {
+    body = (
+      <>
+        <ellipse cx="0" cy="1.05" rx="1.15" ry="0.4" fill="rgba(0,0,0,0.25)" />
+        <path d="M0,-1.5 L1.15,1.1 L-1.15,1.1 Z" fill={o.color} stroke="rgba(0,0,0,0.2)" strokeWidth="0.12" />
+        <path d="M-0.55,-0.15 L0.55,-0.15 L0.78,0.4 L-0.78,0.4 Z" fill="rgba(255,255,255,0.55)" />
+      </>
+    );
+  } else if (o.kind === "disc") {
+    body = (
+      <>
+        <ellipse cx="0" cy="0.28" rx="1.35" ry="0.55" fill="rgba(0,0,0,0.22)" />
+        <ellipse cx="0" cy="0" rx="1.35" ry="0.55" fill={o.color} stroke="rgba(255,255,255,0.7)" strokeWidth="0.16" />
+      </>
+    );
+  } else if (o.kind === "ball") {
+    body = (
+      <>
+        <circle cx="0" cy="0.2" r="0.72" fill="rgba(0,0,0,0.3)" />
+        <circle cx="0" cy="0" r="0.72" fill="#FFFFFF" stroke="#1C1C1E" strokeWidth="0.14" />
+        <path d="M0,-0.45 L0.42,-0.14 L0.26,0.36 L-0.26,0.36 L-0.42,-0.14 Z" fill="#1C1C1E" />
+      </>
+    );
+  } else if (o.kind === "goal") {
+    const gw = 3 * s, d = 1.3, bars = Math.max(3, Math.round(gw / 0.9));
+    body = (
+      <>
+        <rect x={-gw / 2} y={-d / 2} width={gw} height={d} fill="rgba(255,255,255,0.16)" stroke="#F5F5F7" strokeWidth="0.3" />
+        {Array.from({ length: bars }, (_, i) => {
+          const x = -gw / 2 + ((i + 1) * gw) / (bars + 1);
+          return <line key={i} x1={x} y1={-d / 2} x2={x} y2={d / 2} stroke="rgba(255,255,255,0.55)" strokeWidth="0.1" />;
+        })}
+      </>
+    );
+  } else if (o.kind === "gate") {
+    const gw = 2.2 * s;
+    body = (
+      <>
+        <path d={`M${-gw / 2},-1.4 L${-gw / 2 + 1.1},1.1 L${-gw / 2 - 1.1},1.1 Z`} fill={o.color} />
+        <path d={`M${gw / 2},-1.4 L${gw / 2 + 1.1},1.1 L${gw / 2 - 1.1},1.1 Z`} fill={o.color} />
+        <line x1={-gw / 2} y1="0.3" x2={gw / 2} y2="0.3" stroke="rgba(255,255,255,0.5)" strokeWidth="0.16" strokeDasharray="0.7 0.7" />
+      </>
+    );
+  } else if (o.kind === "text") {
+    body = (
+      <text x="0" y="0" textAnchor="middle" fontFamily={UI_FONT} fontSize="2.2" fontWeight="600"
+        fill={o.color} stroke="rgba(0,0,0,0.35)" strokeWidth="0.12" paintOrder="stroke">
+        {o.label || "Label"}
+      </text>
+    );
+  }
+
+  const scale = o.kind === "player" || o.kind === "ball" ? s : 1;
+  return (
+    <g data-oid={o.id} style={{ cursor: playing ? "default" : "grab" }}
+      transform={`translate(${pos.x},${pos.y}) rotate(${o.rot || 0}) scale(${scale})`}>
+      {selected && !playing && (
+        <circle cx="0" cy="0" r={2.7} fill="none" stroke="#0A84FF" strokeWidth="0.32" strokeDasharray="1.1 0.8" />
+      )}
+      {body}
+    </g>
+  );
+}
+
+function MovePath({ from, to, type, color }) {
+  if (Math.hypot(to.x - from.x, to.y - from.y) < 1.2) return null;
+  const [x1, y1, x2, y2] = trimSeg(from.x, from.y, to.x, to.y, 1.7, 2.1);
+  const w = type === "shot" ? 0.55 : 0.36;
+  const dash = type === "pass" ? "1.6 1.2" : undefined;
+  const d = type === "dribble" ? wavy(x1, y1, x2, y2, 0.42) : `M${x1},${y1} L${x2},${y2}`;
+  const hd = ptsStr(headPts(x1, y1, x2, y2, type === "shot" ? 1.9 : 1.5));
+  return (
+    <g pointerEvents="none">
+      <path d={d} fill="none" stroke="rgba(0,0,0,0.35)" strokeWidth={w + 0.3} strokeDasharray={dash} strokeLinecap="round" />
+      <path d={d} fill="none" stroke={color} strokeWidth={w} strokeDasharray={dash} strokeLinecap="round" />
+      <polygon points={hd} fill="rgba(0,0,0,0.35)" transform="translate(0,0.14)" />
+      <polygon points={hd} fill={color} />
+    </g>
+  );
+}
+
+/* ------------------------------------------------------- canvas painter */
+
+function paintScene(ctx, drill, positions, opts = {}) {
+  const p = PITCHES[drill.pitch] || PITCHES.grid;
+  const { paths = [], carry = {} } = opts;
+
+  const n = Math.round(p.h / 7);
+  for (let i = 0; i < n; i++) {
+    ctx.fillStyle = i % 2 ? TURF_ALT : TURF;
+    ctx.fillRect(0, (i * p.h) / n, p.w, p.h / n + 0.02);
+  }
+
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = LINE;
+  ctx.setLineDash([]);
+  ctx.lineWidth = 0.3;
+  ctx.strokeRect(0, 0, p.w, p.h);
+
+  const end = (y0, dir) => {
+    if (p.w >= 60) {
+      ctx.strokeRect((p.w - 40.32) / 2, dir > 0 ? y0 : y0 - 16.5, 40.32, 16.5);
+      ctx.strokeRect((p.w - 18.32) / 2, dir > 0 ? y0 : y0 - 5.5, 18.32, 5.5);
+      ctx.fillStyle = LINE;
+      ctx.beginPath(); ctx.arc(p.w / 2, y0 + dir * 11, 0.28, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath();
+      if (dir > 0) ctx.arc(p.w / 2, y0 + 11, 9.15, 0.6435, 2.4981);
+      else ctx.arc(p.w / 2, y0 - 11, 9.15, 3.7847, 5.6397);
+      ctx.stroke();
+    }
+    ctx.lineWidth = 0.22;
+    ctx.strokeRect(p.w / 2 - 3.66, dir > 0 ? y0 - 2 : y0, 7.32, 2);
+    ctx.lineWidth = 0.3;
+  };
+
+  if (p.marks === "full") {
+    ctx.beginPath(); ctx.moveTo(0, p.h / 2); ctx.lineTo(p.w, p.h / 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(p.w / 2, p.h / 2, 9.15, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = LINE;
+    ctx.beginPath(); ctx.arc(p.w / 2, p.h / 2, 0.3, 0, Math.PI * 2); ctx.fill();
+    end(0, 1); end(p.h, -1);
+    const corners = [[0, 0, 0], [p.w, 0, Math.PI / 2], [p.w, p.h, Math.PI], [0, p.h, Math.PI * 1.5]];
+    for (const [cx, cy, a] of corners) { ctx.beginPath(); ctx.arc(cx, cy, 1, a, a + Math.PI / 2); ctx.stroke(); }
+  } else if (p.marks === "end") {
+    end(0, 1);
+    ctx.beginPath(); ctx.arc(p.w / 2, p.h, 9.15, Math.PI, Math.PI * 2); ctx.stroke();
+  } else {
+    ctx.strokeStyle = "rgba(255,255,255,0.16)";
+    ctx.lineWidth = 0.18; ctx.setLineDash([1, 1.6]);
+    for (let x = 10; x < p.w; x += 10) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, p.h); ctx.stroke(); }
+    for (let y = 10; y < p.h; y += 10) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(p.w, y); ctx.stroke(); }
+    ctx.setLineDash([]);
+  }
+
+  for (const pa of paths) paintPath(ctx, pa);
+
+  const order = ["goal", "gate", "disc", "cone", "text", "player", "ball"];
+  const sorted = [...drill.objects].sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind));
+  const carriers = new Set(Object.values(carry).filter(Boolean));
+  for (const o of sorted) {
+    const pos = positions[o.id];
+    if (pos) paintPiece(ctx, o, pos, carriers.has(o.id));
+  }
+}
+
+function paintPath(ctx, { from, to, type, color }) {
+  if (Math.hypot(to.x - from.x, to.y - from.y) < 1.2) return;
+  const [x1, y1, x2, y2] = trimSeg(from.x, from.y, to.x, to.y, 1.7, 2.1);
+  const w = type === "shot" ? 0.55 : 0.36;
+  const d = type === "dribble" ? wavy(x1, y1, x2, y2, 0.42) : `M${x1},${y1} L${x2},${y2}`;
+  const path = new Path2D(d);
+  ctx.lineCap = "round";
+  ctx.setLineDash(type === "pass" ? [1.6, 1.2] : []);
+  ctx.strokeStyle = "rgba(0,0,0,0.35)"; ctx.lineWidth = w + 0.3; ctx.stroke(path);
+  ctx.strokeStyle = color; ctx.lineWidth = w; ctx.stroke(path);
+  ctx.setLineDash([]);
+  const hd = headPts(x1, y1, x2, y2, type === "shot" ? 1.9 : 1.5);
+  const tri = (dy, fill) => {
+    ctx.beginPath();
+    ctx.moveTo(hd[0][0], hd[0][1] + dy); ctx.lineTo(hd[1][0], hd[1][1] + dy); ctx.lineTo(hd[2][0], hd[2][1] + dy);
+    ctx.closePath(); ctx.fillStyle = fill; ctx.fill();
+  };
+  tri(0.14, "rgba(0,0,0,0.35)");
+  tri(0, color);
+}
+
+function paintPiece(ctx, o, pos, carrying) {
+  const s = o.size || 1;
+  ctx.save();
+  ctx.translate(pos.x, pos.y);
+  if (o.rot) ctx.rotate((o.rot * Math.PI) / 180);
+  const sc = o.kind === "player" || o.kind === "ball" ? s : 1;
+  ctx.scale(sc, sc);
+  ctx.lineCap = "butt";
+  ctx.setLineDash([]);
+
+  const disc = (cx, cy, r, fill) => { ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); };
+
+  if (o.kind === "player") {
+    if (carrying) {
+      ctx.beginPath(); ctx.arc(0, 0, 2.35, 0, Math.PI * 2);
+      ctx.setLineDash([0.9, 0.7]); ctx.lineWidth = 0.16; ctx.strokeStyle = "rgba(255,255,255,0.85)"; ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    disc(0, 0.25, 1.55, "rgba(0,0,0,0.28)");
+    disc(0, 0, 1.55, o.color);
+    ctx.lineWidth = 0.28; ctx.strokeStyle = "rgba(255,255,255,0.9)";
+    ctx.beginPath(); ctx.arc(0, 0, 1.55, 0, Math.PI * 2); ctx.stroke();
+    if (o.label) {
+      const kit = KIT.find((k) => k.c === o.color);
+      ctx.fillStyle = kit ? kit.t : "#fff";
+      ctx.font = `600 1.6px ${UI_FONT}`;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(o.label.slice(0, 3), 0, 0.08);
+    }
+  } else if (o.kind === "cone") {
+    ctx.beginPath(); ctx.ellipse(0, 1.05, 1.15, 0.4, 0, 0, Math.PI * 2); ctx.fillStyle = "rgba(0,0,0,0.25)"; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(0, -1.5); ctx.lineTo(1.15, 1.1); ctx.lineTo(-1.15, 1.1); ctx.closePath();
+    ctx.fillStyle = o.color; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-0.55, -0.15); ctx.lineTo(0.55, -0.15); ctx.lineTo(0.78, 0.4); ctx.lineTo(-0.78, 0.4); ctx.closePath();
+    ctx.fillStyle = "rgba(255,255,255,0.55)"; ctx.fill();
+  } else if (o.kind === "disc") {
+    ctx.beginPath(); ctx.ellipse(0, 0.28, 1.35, 0.55, 0, 0, Math.PI * 2); ctx.fillStyle = "rgba(0,0,0,0.22)"; ctx.fill();
+    ctx.beginPath(); ctx.ellipse(0, 0, 1.35, 0.55, 0, 0, Math.PI * 2);
+    ctx.fillStyle = o.color; ctx.fill();
+    ctx.lineWidth = 0.16; ctx.strokeStyle = "rgba(255,255,255,0.7)"; ctx.stroke();
+  } else if (o.kind === "ball") {
+    disc(0, 0.2, 0.72, "rgba(0,0,0,0.3)");
+    disc(0, 0, 0.72, "#FFFFFF");
+    ctx.lineWidth = 0.14; ctx.strokeStyle = "#1C1C1E";
+    ctx.beginPath(); ctx.arc(0, 0, 0.72, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = "#1C1C1E";
+    ctx.beginPath();
+    ctx.moveTo(0, -0.45); ctx.lineTo(0.42, -0.14); ctx.lineTo(0.26, 0.36); ctx.lineTo(-0.26, 0.36); ctx.lineTo(-0.42, -0.14);
+    ctx.closePath(); ctx.fill();
+  } else if (o.kind === "goal") {
+    const gw = 3 * s, d = 1.3, bars = Math.max(3, Math.round(gw / 0.9));
+    ctx.fillStyle = "rgba(255,255,255,0.16)"; ctx.fillRect(-gw / 2, -d / 2, gw, d);
+    ctx.lineWidth = 0.3; ctx.strokeStyle = "#F5F5F7"; ctx.strokeRect(-gw / 2, -d / 2, gw, d);
+    ctx.lineWidth = 0.1; ctx.strokeStyle = "rgba(255,255,255,0.55)";
+    for (let i = 1; i <= bars; i++) {
+      const x = -gw / 2 + (i * gw) / (bars + 1);
+      ctx.beginPath(); ctx.moveTo(x, -d / 2); ctx.lineTo(x, d / 2); ctx.stroke();
+    }
+  } else if (o.kind === "gate") {
+    const gw = 2.2 * s;
+    ctx.fillStyle = o.color;
+    for (const cx of [-gw / 2, gw / 2]) {
+      ctx.beginPath(); ctx.moveTo(cx, -1.4); ctx.lineTo(cx + 1.1, 1.1); ctx.lineTo(cx - 1.1, 1.1); ctx.closePath(); ctx.fill();
+    }
+    ctx.setLineDash([0.7, 0.7]); ctx.lineWidth = 0.16; ctx.strokeStyle = "rgba(255,255,255,0.5)";
+    ctx.beginPath(); ctx.moveTo(-gw / 2, 0.3); ctx.lineTo(gw / 2, 0.3); ctx.stroke();
+    ctx.setLineDash([]);
+  } else if (o.kind === "text") {
+    ctx.font = `600 2.2px ${UI_FONT}`;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.lineWidth = 0.24; ctx.strokeStyle = "rgba(0,0,0,0.35)";
+    ctx.strokeText(o.label || "Label", 0, 0);
+    ctx.fillStyle = o.color; ctx.fillText(o.label || "Label", 0, 0);
+  }
+  ctx.restore();
+}
+
+/* --------------------------------------------------------- export utils */
+
+function sceneCanvas(drill, positions, opts, targetW) {
+  const p = PITCHES[drill.pitch] || PITCHES.grid;
+  const pad = opts.pad != null ? opts.pad : 3;
+  const cap = opts.caption ? 7 : 0;
+  const vw = p.w + pad * 2, vh = p.h + pad * 2 + cap;
+  const k = targetW / vw;
+  const c = document.createElement("canvas");
+  c.width = Math.round(vw * k / 2) * 2;
+  c.height = Math.round(vh * k / 2) * 2;
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = SURROUND;
+  ctx.fillRect(0, 0, c.width, c.height);
+  ctx.save();
+  ctx.setTransform(k, 0, 0, k, pad * k, pad * k);
+  paintScene(ctx, drill, positions, opts);
+  ctx.restore();
+  if (opts.caption) {
+    const y = (p.h + pad + 3.4) * k;
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = `600 ${2.5 * k}px ${UI_FONT}`;
+    ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.fillText(opts.caption, pad * k, y);
+    if (opts.captionRight) {
+      ctx.fillStyle = "rgba(255,255,255,0.66)";
+      ctx.font = `${2.2 * k}px ${UI_FONT}`;
+      ctx.textAlign = "right";
+      ctx.fillText(opts.captionRight, (p.w + pad) * k, y);
+    }
+  }
+  return c;
+}
+
+function toBlob(canvas, type) {
+  return new Promise((res) => canvas.toBlob(res, type || "image/png"));
+}
+
+function wrapText(ctx, text, maxW) {
+  const words = String(text).split(/\s+/);
+  const lines = [];
+  let line = "";
+  for (const w of words) {
+    const test = line ? line + " " + w : w;
+    if (ctx.measureText(test).width > maxW && line) { lines.push(line); line = w; }
+    else line = test;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+/* ------------------------------------------------------------------ app */
+
+function DrillDesigner() {
+  const [drill, setDrill] = useState(starterDrill);
+  const [history, setHistory] = useState([]);
+  const [step, setStep] = useState(0);
+  const [sel, setSel] = useState(null);
+  const [playing, setPlaying] = useState(false);
+  const [t, setT] = useState(0);
+  const [speed, setSpeed] = useState(1);
+  const [allPaths, setAllPaths] = useState(false);
+  const [view, setView] = useState({ x: 0, y: 0, k: 8 });
+  const [size, setSize] = useState({ w: 360, h: 480 });
+  const [sheet, setSheet] = useState(null);
+  const [tab, setTab] = useState("drills");
+  const [toast, setToast] = useState(null);
+  const [library, setLibrary] = useState([]);
+  const [sessions, setSessions] = useState([]);
+  const [editSession, setEditSession] = useState(null);
+  const [picking, setPicking] = useState(false);
+  const [busy, setBusy] = useState(null);
+
+  const stageRef = useRef(null);
+  const svgRef = useRef(null);
+  const ptrs = useRef(new Map());
+  const drag = useRef(null);
+  const pinch = useRef(null);
+  const raf = useRef(null);
+  const tRef = useRef(0);
+  const drillRef = useRef(drill);
+
+  useEffect(() => { drillRef.current = drill; }, [drill]);
+  useEffect(() => { tRef.current = t; }, [t]);
+
+  const pitch = PITCHES[drill.pitch];
+  const N = drill.steps.length;
+  const selObj = drill.objects.find((o) => o.id === sel) || null;
+  const curCarry = drill.steps[step].carry || {};
+
+  const toastT = useRef(null);
+  const flash = (m) => {
+    setToast(m);
+    if (toastT.current) clearTimeout(toastT.current);
+    toastT.current = setTimeout(() => setToast(null), 2400);
+  };
+
+  /* ---- storage */
+  useEffect(() => {
+    (async () => {
+      try { const r = await store.get("drills-v2"); if (r && r.value) setLibrary(JSON.parse(r.value)); } catch (e) { }
+      try { const r = await store.get("sessions-v1"); if (r && r.value) setSessions(JSON.parse(r.value)); } catch (e) { }
+    })();
+  }, []);
+
+  const persist = async (key, value, setter) => {
+    setter(value);
+    try { await store.set(key, JSON.stringify(value)); return true; }
+    catch (e) { flash("Couldn't save — storage unavailable"); return false; }
+  };
+
+  const saveDrill = async () => {
+    const next = [{ ...deepClone(drill), saved: Date.now() }, ...library.filter((d) => d.id !== drill.id)].slice(0, 60);
+    if (await persist("drills-v2", next, setLibrary)) flash("Drill saved");
+  };
+
+  const saveSessions = (next) => persist("sessions-v1", next, setSessions);
+
+  /* ---- viewport */
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => setSize({ w: e.contentRect.width, h: e.contentRect.height }));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const fit = useCallback(() => {
+    const pad = 26;
+    const k = Math.min((size.w - pad * 2) / pitch.w, (size.h - pad * 2) / pitch.h);
+    setView({ k, x: (size.w - pitch.w * k) / 2, y: (size.h - pitch.h * k) / 2 });
+  }, [size, pitch]);
+
+  useEffect(() => { fit(); }, [fit, drill.pitch, drill.id]);
+
+  const toWorld = (sx, sy) => ({ x: (sx - view.x) / view.k, y: (sy - view.y) / view.k });
+
+  /* ---- playback */
+  useEffect(() => {
+    if (!playing) return;
+    let last = performance.now();
+    const tick = (now) => {
+      const dt = ((now - last) / 1000) * speed;
+      last = now;
+      const i = clamp(Math.floor(tRef.current), 0, N - 2);
+      const dur = (drill.steps[i + 1] && drill.steps[i + 1].duration) || 1.2;
+      const nx = tRef.current + dt / dur;
+      if (nx >= N - 1) { tRef.current = N - 1; setT(N - 1); setStep(N - 1); setPlaying(false); return; }
+      tRef.current = nx; setT(nx); setStep(Math.round(nx));
+      raf.current = requestAnimationFrame(tick);
+    };
+    raf.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf.current);
+  }, [playing, speed, drill, N]);
+
+  const shown = playing ? positionsAt(drill, t) : drill.steps[step].positions;
+  const paths = useMemo(() => (playing ? [] : pathsFor(drill, step, allPaths)), [drill, step, allPaths, playing]);
+
+  /* ---- mutations */
+  const commit = (fn) => {
+    setHistory((h) => [...h.slice(-24), drillRef.current]);
+    setDrill((d) => fn(deepClone(d)));
+  };
+
+  const undo = () => setHistory((h) => {
+    if (!h.length) return h;
+    const prev = h[h.length - 1];
+    setDrill(prev);
+    setStep((s) => Math.min(s, prev.steps.length - 1));
+    return h.slice(0, -1);
+  });
+
+  const addObject = (kind, opts = {}) => {
+    const c = toWorld(size.w / 2, size.h / 2);
+    const o = {
+      id: uid(), kind, x0: clamp(c.x, 2, pitch.w - 2), y0: clamp(c.y, 2, pitch.h - 2),
+      color: opts.color || "#0A84FF", label: opts.label || "", rot: 0, size: opts.size || 1,
+    };
+    commit((d) => {
+      d.objects.push(o);
+      d.steps.forEach((s) => { s.positions[o.id] = { x: o.x0, y: o.y0 }; });
+      return d;
+    });
+    setSel(o.id);
+  };
+
+  const updateSel = (patch) => commit((d) => {
+    const o = d.objects.find((x) => x.id === sel);
+    if (o) Object.assign(o, patch);
+    return d;
+  });
+
+  const deleteSel = () => {
+    commit((d) => {
+      d.objects = d.objects.filter((o) => o.id !== sel);
+      d.steps.forEach((s) => {
+        delete s.positions[sel]; delete s.moves[sel];
+        if (s.carry) {
+          delete s.carry[sel];
+          for (const b of Object.keys(s.carry)) if (s.carry[b] === sel) s.carry[b] = null;
+        }
+      });
+      return d;
+    });
+    setSel(null);
+  };
+
+  const duplicateSel = () => {
+    if (!selObj) return;
+    const p = shown[selObj.id];
+    const o = { ...selObj, id: uid(), x0: p.x + 3, y0: p.y + 3 };
+    commit((d) => {
+      d.objects.push(o);
+      d.steps.forEach((s) => { s.positions[o.id] = { x: o.x0, y: o.y0 }; });
+      return d;
+    });
+    setSel(o.id);
+  };
+
+  const addStep = () => {
+    commit((d) => {
+      const cur = d.steps[step];
+      d.steps.splice(step + 1, 0, {
+        id: uid(), duration: 1.2, note: "",
+        positions: deepClone(cur.positions), moves: {}, carry: { ...(cur.carry || {}) },
+      });
+      return d;
+    });
+    setStep(step + 1); setT(step + 1); tRef.current = step + 1;
+  };
+
+  const deleteStep = () => {
+    if (N <= 1) return;
+    commit((d) => { d.steps.splice(step, 1); return d; });
+    const s = Math.max(0, step - 1);
+    setStep(s); setT(s); tRef.current = s;
+  };
+
+  const setDuration = (delta) => commit((d) => {
+    const s = d.steps[step];
+    s.duration = clamp(Math.round((s.duration + delta) * 10) / 10, 0.3, 5);
+    return d;
+  });
+
+  const setNote = (v) => setDrill((d) => {
+    const next = { ...d, steps: d.steps.map((s, i) => (i === step ? { ...s, note: v } : s)) };
+    return next;
+  });
+
+  const setMove = (type) => commit((d) => {
+    if (step > 0 && sel) {
+      if (d.steps[step].moves[sel] === type) delete d.steps[step].moves[sel];
+      else d.steps[step].moves[sel] = type;
+    }
+    return d;
+  });
+
+  const releaseBall = () => commit((d) => { propagateCarry(d, sel, step, null); return d; });
+
+  const resolveCarry = (ballId) => setDrill((prev) => ((d) => {
+    const pos = d.steps[step].positions[ballId];
+    let best = null, bd = 3.2;
+    for (const o of d.objects) {
+      if (o.kind !== "player") continue;
+      const pp = d.steps[step].positions[o.id];
+      if (!pp) continue;
+      const dist = Math.hypot(pp.x - pos.x, pp.y - pos.y);
+      if (dist < bd) { bd = dist; best = o; }
+    }
+    if (best) {
+      const pp = d.steps[step].positions[best.id];
+      let dx = pos.x - pp.x, dy = pos.y - pp.y;
+      const L = Math.hypot(dx, dy) || 1;
+      if (L < 0.4) { dx = 0.9; dy = 1.4; }
+      const u = 1.75 / (Math.hypot(dx, dy) || 1);
+      propagatePos(d, ballId, step, { x: pp.x + dx * u, y: pp.y + dy * u });
+      propagateCarry(d, ballId, step, best.id);
+    } else {
+      propagateCarry(d, ballId, step, null);
+    }
+    return d;
+  })(deepClone(prev)));
+
+  /* ---- pointer */
+  const onDown = (e) => {
+    if (playing) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const r = svgRef.current.getBoundingClientRect();
+    const pt = { x: e.clientX - r.left, y: e.clientY - r.top };
+    ptrs.current.set(e.pointerId, pt);
+
+    if (ptrs.current.size === 2) {
+      drag.current = null;
+      const [a, b] = [...ptrs.current.values()];
+      pinch.current = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, c: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, view };
+      return;
+    }
+    const g = e.target.closest && e.target.closest("[data-oid]");
+    if (g) {
+      const id = g.getAttribute("data-oid");
+      setSel(id);
+      setHistory((h) => [...h.slice(-24), drillRef.current]);
+      const w = toWorld(pt.x, pt.y);
+      const p = drill.steps[step].positions[id];
+      drag.current = { id, dx: p.x - w.x, dy: p.y - w.y, moved: false };
+    } else {
+      setSel(null);
+      drag.current = { pan: true, sx: pt.x, sy: pt.y, view };
+    }
+  };
+
+  const onMove = (e) => {
+    if (!ptrs.current.has(e.pointerId)) return;
+    const r = svgRef.current.getBoundingClientRect();
+    const pt = { x: e.clientX - r.left, y: e.clientY - r.top };
+    ptrs.current.set(e.pointerId, pt);
+
+    if (ptrs.current.size === 2 && pinch.current) {
+      const [a, b] = [...ptrs.current.values()];
+      const dist = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+      const c = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      const v0 = pinch.current.view;
+      const k = clamp((v0.k * dist) / pinch.current.d, 2, 60);
+      const wx = (pinch.current.c.x - v0.x) / v0.k, wy = (pinch.current.c.y - v0.y) / v0.k;
+      setView({ k, x: c.x - wx * k, y: c.y - wy * k });
+      return;
+    }
+
+    const dr = drag.current;
+    if (!dr) return;
+    if (dr.pan) {
+      setView({ ...dr.view, x: dr.view.x + (pt.x - dr.sx), y: dr.view.y + (pt.y - dr.sy) });
+      return;
+    }
+    const w = toWorld(pt.x, pt.y);
+    dr.moved = true;
+    setDrill((d) => {
+      const next = { ...d, steps: d.steps.map((s) => ({ ...s, positions: { ...s.positions } })) };
+      const o = next.objects.find((x) => x.id === dr.id);
+      const old = next.steps[step].positions[dr.id];
+      const np = { x: clamp(w.x + dr.dx, -3, pitch.w + 3), y: clamp(w.y + dr.dy, -3, pitch.h + 3) };
+      const dx = np.x - old.x, dy = np.y - old.y;
+      propagatePos(next, dr.id, step, np);
+      if (o && o.kind === "player") {
+        const carried = Object.entries(next.steps[step].carry || {}).filter(([, pl]) => pl === dr.id).map(([b]) => b);
+        for (const b of carried) {
+          const bp = next.steps[step].positions[b];
+          if (bp) propagatePos(next, b, step, { x: bp.x + dx, y: bp.y + dy });
+        }
+      }
+      return next;
+    });
+  };
+
+  const onUp = (e) => {
+    const dr = drag.current;
+    ptrs.current.delete(e.pointerId);
+    if (ptrs.current.size < 2) pinch.current = null;
+    if (ptrs.current.size === 0) drag.current = null;
+    if (dr && dr.id && dr.moved) {
+      const o = drillRef.current.objects.find((x) => x.id === dr.id);
+      if (o && o.kind === "ball") resolveCarry(dr.id);
+    }
+  };
+
+  const onWheel = (e) => {
+    e.preventDefault();
+    const r = svgRef.current.getBoundingClientRect();
+    const px = e.clientX - r.left, py = e.clientY - r.top;
+    const k = clamp(view.k * (e.deltaY > 0 ? 0.92 : 1.08), 2, 60);
+    setView({ k, x: px - ((px - view.x) / view.k) * k, y: py - ((py - view.y) / view.k) * k });
+  };
+
+  /* ---- exports */
+  const fileBase = () => (drill.name.replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "-") || "drill");
+
+  const deliver = async (blob, name, label) => {
+    const file = new File([blob], name, { type: blob.type });
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: drill.name });
+        return;
+      }
+    } catch (err) {
+      if (err && err.name === "AbortError") return;
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    flash(label || "Saved to your downloads");
+  };
+
+  const exportStill = async (share) => {
+    const positions = drill.steps[step].positions;
+    const c = sceneCanvas(drill, positions, {
+      paths: pathsFor(drill, step, allPaths),
+      carry: drill.steps[step].carry || {},
+      caption: drill.name,
+      captionRight: allPaths ? `All phases · ${N} steps` : `Step ${step + 1} of ${N}`,
+    }, 1700);
+    const blob = await toBlob(c);
+    const name = `${fileBase()}${allPaths ? "" : `-step-${step + 1}`}.png`;
+    if (share) await deliver(blob, name);
+    else {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = name; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      flash("Image saved");
+    }
+    setSheet(null);
+  };
+
+  const exportContactSheet = async () => {
+    setBusy({ label: "Building contact sheet" });
+    try {
+      const cols = pitch.h > pitch.w ? 3 : 2;
+      const cells = drill.steps.map((s, i) =>
+        sceneCanvas(drill, s.positions, {
+          paths: pathsFor(drill, i, false), carry: s.carry || {}, pad: 2,
+        }, 620)
+      );
+      const cw = cells[0].width, ch = cells[0].height;
+      const gap = 26, padOut = 46, head = 130;
+      const rows = Math.ceil(cells.length / cols);
+      const W = padOut * 2 + cols * cw + (cols - 1) * gap;
+      const labelH = 54;
+      const H = head + padOut + rows * (ch + labelH + gap);
+      const c = document.createElement("canvas");
+      c.width = W; c.height = H;
+      const ctx = c.getContext("2d");
+      ctx.fillStyle = "#0B1F17"; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = "#fff"; ctx.textBaseline = "middle"; ctx.textAlign = "left";
+      ctx.font = `700 46px ${UI_FONT}`;
+      ctx.fillText(drill.name, padOut, 62);
+      ctx.fillStyle = "rgba(255,255,255,0.6)"; ctx.font = `28px ${UI_FONT}`;
+      ctx.fillText(`${N} phases · ${PITCHES[drill.pitch].label} · ${timeline(drill).total.toFixed(1)}s`, padOut, 108);
+      cells.forEach((cell, i) => {
+        const cx = padOut + (i % cols) * (cw + gap);
+        const cy = head + Math.floor(i / cols) * (ch + labelH + gap);
+        ctx.drawImage(cell, cx, cy);
+        ctx.fillStyle = "#fff"; ctx.font = `700 26px ${UI_FONT}`; ctx.textAlign = "left";
+        ctx.fillText(String(i + 1), cx + 4, cy + ch + 22);
+        const note = drill.steps[i].note;
+        if (note) {
+          ctx.fillStyle = "rgba(255,255,255,0.72)"; ctx.font = `22px ${UI_FONT}`;
+          ctx.fillText(wrapText(ctx, note, cw - 40)[0], cx + 30, cy + ch + 22);
+        }
+      });
+      await deliver(await toBlob(c), `${fileBase()}-all-steps.png`, "Contact sheet saved");
+      setSheet(null);
+    } catch (e) { flash("Couldn't build the contact sheet"); }
+    setBusy(null);
+  };
+
+  const exportVideo = async () => {
+    if (N < 2) { flash("Add a second step first"); return; }
+    const mimes = ["video/mp4;codecs=avc1.42E01E", "video/mp4", "video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
+    const mime = typeof MediaRecorder !== "undefined" ? mimes.find((m) => MediaRecorder.isTypeSupported(m)) : null;
+    const c = document.createElement("canvas");
+    if (!mime || !c.captureStream) {
+      flash("Video isn't supported here — try the contact sheet");
+      return;
+    }
+    setBusy({ label: "Recording", pct: 0 });
+    try {
+      const { segs, total } = timeline(drill);
+      const pad = 2.5, cap = 6;
+      const vw = pitch.w + pad * 2, vh = pitch.h + pad * 2 + cap;
+      const k = Math.min(1080 / vw, 1400 / vh);
+      c.width = Math.round((vw * k) / 2) * 2;
+      c.height = Math.round((vh * k) / 2) * 2;
+      const ctx = c.getContext("2d");
+      const stream = c.captureStream(30);
+      const chunks = [];
+      const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 6000000 });
+      rec.ondataavailable = (ev) => { if (ev.data && ev.data.size) chunks.push(ev.data); };
+      const done = new Promise((res) => { rec.onstop = res; });
+
+      const dur = HOLD_IN + total + HOLD_OUT;
+      const frame = (sec) => {
+        const clamped = clamp(sec - HOLD_IN, 0, total);
+        const tt = tAtSeconds(clamped, segs);
+        const positions = positionsAt(drill, tt);
+        const si = clamp(Math.round(tt), 0, N - 1);
+        ctx.fillStyle = SURROUND;
+        ctx.fillRect(0, 0, c.width, c.height);
+        ctx.save();
+        ctx.setTransform(k, 0, 0, k, pad * k, pad * k);
+        paintScene(ctx, drill, positions, { paths: [], carry: drill.steps[si].carry || {} });
+        ctx.restore();
+        ctx.fillStyle = "#FFFFFF";
+        ctx.font = `600 ${2.3 * k}px ${UI_FONT}`;
+        ctx.textAlign = "left"; ctx.textBaseline = "middle";
+        ctx.fillText(drill.name, pad * k, (pitch.h + pad + 3.2) * k);
+        const note = drill.steps[si].note;
+        if (note) {
+          ctx.fillStyle = "rgba(255,255,255,0.68)";
+          ctx.font = `${2 * k}px ${UI_FONT}`;
+          ctx.textAlign = "right";
+          ctx.fillText(note, (pitch.w + pad) * k, (pitch.h + pad + 3.2) * k);
+        }
+      };
+
+      frame(0);
+      rec.start();
+      await new Promise((res) => {
+        const t0 = performance.now();
+        let lastPct = -1;
+        const loop = () => {
+          const sec = (performance.now() - t0) / 1000;
+          frame(Math.min(sec, dur));
+          const pct = clamp(sec / dur, 0, 1);
+          if (pct - lastPct > 0.05) { lastPct = pct; setBusy({ label: "Recording", pct }); }
+          if (sec >= dur) res();
+          else requestAnimationFrame(loop);
+        };
+        requestAnimationFrame(loop);
+      });
+      rec.stop();
+      await done;
+      const blob = new Blob(chunks, { type: mime });
+      const ext = mime.indexOf("mp4") >= 0 ? "mp4" : "webm";
+      setBusy({ label: "Saving" });
+      await deliver(blob, `${fileBase()}.${ext}`, ext === "webm" ? "Saved (WebM — plays on phones and desktop)" : "Video saved");
+      setSheet(null);
+    } catch (e) {
+      flash("Recording failed — try the contact sheet");
+    }
+    setBusy(null);
+  };
+
+  const exportSession = async (session) => {
+    setBusy({ label: "Building session plan" });
+    try {
+      const items = session.items || [];
+      const W = 1240, padOut = 56, rowH = 300, gap = 24, head = 190;
+      const H = head + padOut + Math.max(1, items.length) * (rowH + gap);
+      const c = document.createElement("canvas");
+      c.width = W; c.height = H;
+      const ctx = c.getContext("2d");
+      ctx.fillStyle = "#F4F4F6"; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = "#0B1F17"; ctx.fillRect(0, 0, W, head - 40);
+      ctx.fillStyle = "#fff"; ctx.textBaseline = "middle"; ctx.textAlign = "left";
+      ctx.font = `700 48px ${UI_FONT}`;
+      ctx.fillText(session.name || "Session plan", padOut, 72);
+      const mins = items.reduce((a, b) => a + (b.minutes || 0), 0);
+      ctx.fillStyle = "rgba(255,255,255,0.66)"; ctx.font = `26px ${UI_FONT}`;
+      ctx.fillText([session.date, `${items.length} drills`, `${mins} min`].filter(Boolean).join("  ·  "), padOut, 118);
+
+      for (let i = 0; i < items.length; i++) {
+        const it = items[i];
+        const y = head + i * (rowH + gap);
+        ctx.fillStyle = "#FFFFFF";
+        roundRect(ctx, padOut, y, W - padOut * 2, rowH, 20);
+        ctx.fill();
+        const src = library.find((d) => d.id === it.drillId);
+        const boxW = 420, boxH = rowH - 40;
+        if (src) {
+          const cell = sceneCanvas(src, src.steps[0].positions, {
+            paths: pathsFor(src, 0, true), carry: src.steps[0].carry || {}, pad: 2,
+          }, 900);
+          const s = Math.min(boxW / cell.width, boxH / cell.height);
+          const dw = cell.width * s, dh = cell.height * s;
+          ctx.drawImage(cell, padOut + 20 + (boxW - dw) / 2, y + 20 + (boxH - dh) / 2, dw, dh);
+        }
+        const tx = padOut + 20 + boxW + 28;
+        ctx.fillStyle = "#8E8E93"; ctx.font = `700 22px ${UI_FONT}`;
+        ctx.fillText(String(i + 1).padStart(2, "0"), tx, y + 44);
+        ctx.fillStyle = "#1C1C1E"; ctx.font = `700 34px ${UI_FONT}`;
+        ctx.fillText(it.name || "Drill", tx + 44, y + 44);
+        ctx.fillStyle = "#0A84FF"; ctx.font = `600 26px ${UI_FONT}`;
+        ctx.fillText(`${it.minutes || 0} min`, tx, y + 92);
+        if (it.note) {
+          ctx.fillStyle = "#3C3C43"; ctx.font = `24px ${UI_FONT}`;
+          const lines = wrapText(ctx, it.note, W - padOut * 2 - boxW - 80).slice(0, 5);
+          lines.forEach((ln, li) => ctx.fillText(ln, tx, y + 140 + li * 34));
+        }
+      }
+      await deliver(await toBlob(c), `${(session.name || "session").replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "-")}.png`, "Session plan saved");
+    } catch (e) { flash("Couldn't build the session plan"); }
+    setBusy(null);
+  };
+
+  /* ---- session helpers */
+  const updateSession = (patch) => {
+    const next = { ...editSession, ...patch };
+    setEditSession(next);
+    saveSessions(sessions.map((s) => (s.id === next.id ? next : s)));
+  };
+
+  const moveItem = (i, dir) => {
+    const items = [...editSession.items];
+    const j = i + dir;
+    if (j < 0 || j >= items.length) return;
+    [items[i], items[j]] = [items[j], items[i]];
+    updateSession({ items });
+  };
+
+  /* ------------------------------------------------------------ render */
+  return (
+    <div className="app">
+      <style>{CSS}</style>
+
+      <header className="bar">
+        <input className="title" value={drill.name} onChange={(e) => setDrill({ ...drill, name: e.target.value })} placeholder="Untitled drill" />
+        <div className="row">
+          <button className="ic" onClick={undo} disabled={!history.length} aria-label="Undo"><Undo2 size={18} /></button>
+          <button className="ic" onClick={() => setSheet("help")} aria-label="How it works"><Info size={18} /></button>
+          <button className="ic" onClick={() => { setTab("drills"); setSheet("library"); }} aria-label="Drills and sessions"><FolderOpen size={18} /></button>
+          <button className="ic primary" onClick={() => setSheet("export")} aria-label="Export"><Share2 size={18} /></button>
+        </div>
+      </header>
+
+      <div className="stage" ref={stageRef}>
+        <svg ref={svgRef} width="100%" height="100%" viewBox={`0 0 ${size.w} ${size.h}`}
+          onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onWheel={onWheel}
+          style={{ touchAction: "none", display: "block", background: SURROUND }}>
+          <g transform={`translate(${view.x},${view.y}) scale(${view.k})`}>
+            <Turf p={pitch} />
+            <Markings p={pitch} />
+            {paths.map((p) => <MovePath key={p.key} {...p} />)}
+            {[...drill.objects]
+              .sort((a, b) => ["goal", "gate", "disc", "cone", "text", "player", "ball"].indexOf(a.kind) - ["goal", "gate", "disc", "cone", "text", "player", "ball"].indexOf(b.kind))
+              .map((o) => {
+                const pos = shown[o.id];
+                if (!pos) return null;
+                return <Piece key={o.id} o={o} pos={pos} selected={o.id === sel} playing={playing}
+                  carrying={o.kind === "player" && Object.values(curCarry).indexOf(o.id) >= 0} />;
+              })}
+          </g>
+        </svg>
+
+        <div className="float">
+          <button className="chipbtn" onClick={fit} aria-label="Fit pitch"><Maximize2 size={16} /></button>
+          <button className={"chipbtn" + (allPaths ? " on" : "")} onClick={() => setAllPaths(!allPaths)} aria-label="Show all paths"><Route size={16} /></button>
+        </div>
+
+        <div className="pitchpick">
+          {Object.entries(PITCHES).map(([k, v]) => (
+            <button key={k} className={"seg" + (drill.pitch === k ? " on" : "")}
+              onClick={() => commit((d) => { d.pitch = k; return d; })}>{v.label}</button>
+          ))}
+        </div>
+
+        {selObj && !playing && (
+          <div className="inspector">
+            <div className="insphead">
+              <span className="kindname">
+                {selObj.kind === "player" ? "Player" : selObj.kind[0].toUpperCase() + selObj.kind.slice(1)}
+                {selObj.kind === "player" && Object.values(curCarry).indexOf(selObj.id) >= 0 && <em className="badge">has the ball</em>}
+              </span>
+              <div className="row">
+                <button className="ic sm" onClick={duplicateSel} aria-label="Duplicate"><Copy size={15} /></button>
+                <button className="ic sm" onClick={() => updateSel({ rot: ((selObj.rot || 0) + 45) % 360 })} aria-label="Rotate"><RotateCw size={15} /></button>
+                <button className="ic sm danger" onClick={deleteSel} aria-label="Delete"><Trash2 size={15} /></button>
+                <button className="ic sm" onClick={() => setSel(null)} aria-label="Close"><X size={15} /></button>
+              </div>
+            </div>
+
+            {["player", "cone", "disc", "gate", "text"].indexOf(selObj.kind) >= 0 && (
+              <div className="swatches">
+                {KIT.map((k) => (
+                  <button key={k.c} className={"sw" + (selObj.color === k.c ? " on" : "")} style={{ background: k.c }}
+                    onClick={() => updateSel({ color: k.c })} aria-label={k.name} />
+                ))}
+              </div>
+            )}
+
+            {(selObj.kind === "player" || selObj.kind === "text") && (
+              <input className="field" value={selObj.label} maxLength={selObj.kind === "text" ? 24 : 3}
+                placeholder={selObj.kind === "text" ? "Note" : "No. or initials"}
+                onChange={(e) => updateSel({ label: e.target.value })} />
+            )}
+
+            {selObj.kind === "ball" && (
+              <div className="carryrow">
+                {curCarry[selObj.id] ? (
+                  <>
+                    <span className="lbl">
+                      At the feet of {(drill.objects.find((o) => o.id === curCarry[selObj.id]) || {}).label || "a player"}
+                    </span>
+                    <button className="minibtn" onClick={releaseBall}><Link2Off size={13} /> Release</button>
+                  </>
+                ) : (
+                  <span className="lbl">Loose ball — drag it onto a player to attach it</span>
+                )}
+              </div>
+            )}
+
+            {(selObj.kind === "goal" || selObj.kind === "gate") && (
+              <div className="stepper">
+                <span className="lbl">Width</span>
+                <button onClick={() => updateSel({ size: clamp((selObj.size || 2) - 0.5, 0.5, 8) })}>–</button>
+                <button onClick={() => updateSel({ size: clamp((selObj.size || 2) + 0.5, 0.5, 8) })}>+</button>
+              </div>
+            )}
+
+            {step > 0 && (
+              <div className="moverow">
+                <span className="lbl">Move into step {step + 1}</span>
+                <div className="segs">
+                  {["run", "pass", "dribble", "shot"].map((m) => (
+                    <button key={m} className={"seg" + (moveTypeFor(drill, step, selObj) === m ? " on" : "")}
+                      onClick={() => setMove(m)}>{MOVE_LABEL[m]}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="dock">
+        <div className="steps">
+          {drill.steps.map((s, i) => (
+            <button key={s.id} className={"stepchip" + (i === step ? " on" : "")}
+              onClick={() => { setPlaying(false); setStep(i); setT(i); tRef.current = i; }}>{i + 1}</button>
+          ))}
+          <button className="stepchip add" onClick={addStep}><Plus size={15} /></button>
+          {N > 1 && <button className="stepchip del" onClick={deleteStep}><Trash2 size={14} /></button>}
+          {step > 0 && (
+            <span className="dur">
+              <button onClick={() => setDuration(-0.2)}>–</button>
+              {drill.steps[step].duration.toFixed(1)}s
+              <button onClick={() => setDuration(0.2)}>+</button>
+            </span>
+          )}
+        </div>
+
+        <input className="notefield" value={drill.steps[step].note || ""} placeholder={`Coaching point for step ${step + 1}`}
+          onChange={(e) => setNote(e.target.value)} />
+
+        <div className="transport">
+          <button className="ic" onClick={() => { setPlaying(false); setT(0); tRef.current = 0; setStep(0); }} aria-label="Restart"><SkipBack size={17} /></button>
+          <button className="play" onClick={() => {
+            if (N < 2) { flash("Add a second step to simulate"); return; }
+            if (playing) setPlaying(false);
+            else { setSel(null); if (t >= N - 1) { setT(0); tRef.current = 0; } setPlaying(true); }
+          }}>{playing ? <Pause size={19} /> : <Play size={19} style={{ marginLeft: 2 }} />}</button>
+          <input className="scrub" type="range" min={0} max={Math.max(0.001, N - 1)} step={0.01} value={t}
+            onChange={(e) => { setPlaying(false); const v = +e.target.value; setT(v); tRef.current = v; setStep(Math.round(v)); }} />
+          <div className="segs tight">
+            {[0.5, 1, 2].map((s) => (
+              <button key={s} className={"seg" + (speed === s ? " on" : "")} onClick={() => setSpeed(s)}>{s}×</button>
+            ))}
+          </div>
+        </div>
+
+        <div className="palette">
+          <PalBtn label="Player" onClick={() => addObject("player", { color: "#0A84FF", label: String(drill.objects.filter((o) => o.kind === "player").length + 1) })}>
+            <span className="dot" style={{ background: "#0A84FF" }} />
+          </PalBtn>
+          <PalBtn label="Opponent" onClick={() => addObject("player", { color: "#FF3B30" })}>
+            <span className="dot" style={{ background: "#FF3B30" }} />
+          </PalBtn>
+          <PalBtn label="Ball" onClick={() => addObject("ball", { color: "#FFFFFF" })}>
+            <span className="dot" style={{ background: "#fff", border: "1.5px solid #1C1C1E" }} />
+          </PalBtn>
+          <PalBtn label="Cone" onClick={() => addObject("cone", { color: "#FF9F0A" })}><span className="tri" /></PalBtn>
+          <PalBtn label="Disc" onClick={() => addObject("disc", { color: "#FFD60A" })}><span className="disc" /></PalBtn>
+          <PalBtn label="Gate" onClick={() => addObject("gate", { color: "#FF9F0A", size: 2 })}><span className="gate"><i /><i /></span></PalBtn>
+          <PalBtn label="Goal" onClick={() => addObject("goal", { color: "#F5F5F7", size: 2 })}><span className="goal" /></PalBtn>
+          <PalBtn label="Note" onClick={() => addObject("text", { color: "#FFFFFF", label: "Note" })}><span className="note">T</span></PalBtn>
+        </div>
+      </div>
+
+      {sheet === "help" && (
+        <Sheet title="How it works" onClose={() => setSheet(null)}>
+          <div className="help">
+            <section>
+              <h3>1 · Set the picture up</h3>
+              <ul>
+                <li>Tap anything in the bottom palette to drop it on the pitch, then drag it into place.</li>
+                <li>Tap an item to recolour it by team or position, give a player a number, rotate, duplicate or delete.</li>
+                <li>Drag empty grass to pan, pinch or scroll to zoom, <b>⤢</b> refits the pitch. Choose the pitch size top left.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h3>2 · Give someone the ball</h3>
+              <ul>
+                <li>Drag the ball onto a player and it attaches — they get a dashed ring and the ball travels with them when you move them.</li>
+                <li>Where the ball ends up decides the notation: a different player is a <b>pass</b>, the same player is a <b>dribble</b>, near a goal with nobody on it is a <b>shot</b>.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h3>3 · Record the movement</h3>
+              <ul>
+                <li>Step 1 is the starting shape. Tap <b>+</b> for step 2, then move players and the ball to where they finish that phase — the arrows draw themselves.</li>
+                <li>Select any item to override its arrow, and use the seconds control to make a phase quicker or slower.</li>
+                <li>Add a coaching point under the steps; it carries through to the video and every export.</li>
+              </ul>
+              <svg className="legend" viewBox="0 0 52 27" aria-label="Arrow key">
+                <MovePath from={{ x: 2, y: 3 }} to={{ x: 22, y: 3 }} type="run" color="#0A84FF" />
+                <MovePath from={{ x: 2, y: 10 }} to={{ x: 22, y: 10 }} type="pass" color="#1C1C1E" />
+                <MovePath from={{ x: 2, y: 17 }} to={{ x: 22, y: 17 }} type="dribble" color="#1C1C1E" />
+                <MovePath from={{ x: 2, y: 24 }} to={{ x: 22, y: 24 }} type="shot" color="#1C1C1E" />
+                <text x="25" y="3.9" fontSize="3.3" fontFamily={UI_FONT} fill="#3C3C43">Run</text>
+                <text x="25" y="10.9" fontSize="3.3" fontFamily={UI_FONT} fill="#3C3C43">Pass</text>
+                <text x="25" y="17.9" fontSize="3.3" fontFamily={UI_FONT} fill="#3C3C43">Dribble</text>
+                <text x="25" y="24.9" fontSize="3.3" fontFamily={UI_FONT} fill="#3C3C43">Shot</text>
+              </svg>
+            </section>
+
+            <section>
+              <h3>4 · Simulate it</h3>
+              <ul>
+                <li>Play runs the whole drill. Drag the slider to scrub through it by hand, or drop to 0.5× to talk over it.</li>
+                <li>The <b>route</b> button on the right overlays every phase onto one diagram — that's the version to print.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h3>5 · Share it</h3>
+              <ul>
+                <li>The share button records a video of the simulation, saves a still image, or builds a contact sheet of every step.</li>
+                <li>Save a drill to your library, then group saved drills into a session with timings and export one plan sheet.</li>
+                <li>Drills are stored on this device only, so send a coach the video or image rather than expecting them to have your library.</li>
+              </ul>
+            </section>
+          </div>
+        </Sheet>
+      )}
+
+      {sheet === "export" && (
+        <Sheet title="Export" onClose={() => setSheet(null)}>
+          <p className="hint">Video plays the whole drill at 1× with your coaching points. Images capture the pitch as it looks now.</p>
+          <Row icon={<Film size={18} />} label="Record video of the simulation" sub={`${(timeline(drill).total + HOLD_IN + HOLD_OUT).toFixed(1)}s`} onClick={exportVideo} />
+          <Row icon={<Share2 size={18} />} label="Save image to Photos or share" onClick={() => exportStill(true)} />
+          <Row icon={<Download size={18} />} label="Download image" onClick={() => exportStill(false)} />
+          <Row icon={<Grid3x3 size={18} />} label="Contact sheet of every step" onClick={exportContactSheet} />
+          <Row icon={<Check size={18} />} label="Save drill to my library" onClick={async () => { await saveDrill(); setSheet(null); }} />
+        </Sheet>
+      )}
+
+      {sheet === "library" && (
+        <Sheet title={tab === "drills" ? "My drills" : "Sessions"} onClose={() => setSheet(null)}
+          head={
+            <div className="tabs">
+              <button className={"seg" + (tab === "drills" ? " on" : "")} onClick={() => setTab("drills")}>Drills</button>
+              <button className={"seg" + (tab === "sessions" ? " on" : "")} onClick={() => setTab("sessions")}>Sessions</button>
+            </div>
+          }>
+          {tab === "drills" ? (
+            <>
+              <Row icon={<Plus size={18} />} label="Start a new drill" onClick={() => {
+                const objs = [];
+                setHistory((h) => [...h, drill]);
+                setDrill({ id: uid(), name: "New drill", pitch: drill.pitch, objects: objs, steps: blankSteps(objs) });
+                setStep(0); setT(0); tRef.current = 0; setSel(null); setSheet(null);
+              }} />
+              <Row icon={<Check size={18} />} label={`Save “${drill.name}”`} onClick={saveDrill} />
+              {library.length === 0 ? <p className="hint">Nothing saved yet. Saved drills stay on this device.</p> :
+                library.map((d) => (
+                  <Row key={d.id} badge={d.steps.length} label={d.name}
+                    sub={`${PITCHES[d.pitch] ? PITCHES[d.pitch].label : ""} · ${d.objects.length} items`}
+                    onClick={() => {
+                      setHistory((h) => [...h, drill]);
+                      setDrill(deepClone(d));
+                      setStep(0); setT(0); tRef.current = 0; setSel(null); setSheet(null);
+                    }} />
+                ))}
+            </>
+          ) : (
+            <>
+              <Row icon={<Plus size={18} />} label="New session" onClick={() => {
+                const s = { id: uid(), name: "Sunday session", date: "", items: [] };
+                saveSessions([s, ...sessions]);
+                setEditSession(s); setSheet("session");
+              }} />
+              {sessions.length === 0 ? <p className="hint">Group saved drills into a session, set the minutes, then export one plan sheet.</p> :
+                sessions.map((s) => (
+                  <Row key={s.id} icon={<ClipboardList size={18} />} label={s.name}
+                    sub={`${(s.items || []).length} drills · ${(s.items || []).reduce((a, b) => a + (b.minutes || 0), 0)} min${s.date ? " · " + s.date : ""}`}
+                    onClick={() => { setEditSession(s); setSheet("session"); }} />
+                ))}
+            </>
+          )}
+        </Sheet>
+      )}
+
+      {sheet === "session" && editSession && (
+        <Sheet title="Session" onClose={() => { setSheet("library"); setTab("sessions"); setPicking(false); }}>
+          <input className="field big" value={editSession.name} placeholder="Session name"
+            onChange={(e) => updateSession({ name: e.target.value })} />
+          <input className="field" value={editSession.date} placeholder="When (e.g. Sun 2 Aug, 10am)"
+            onChange={(e) => updateSession({ date: e.target.value })} />
+
+          {(editSession.items || []).map((it, i) => (
+            <div className="sessitem" key={it.id}>
+              <div className="sessrow">
+                <span className="idx">{i + 1}</span>
+                <span className="sessname">{it.name}</span>
+                <div className="minstep">
+                  <button onClick={() => updateSession({ items: editSession.items.map((x, j) => j === i ? { ...x, minutes: clamp((x.minutes || 0) - 5, 0, 120) } : x) })}>–</button>
+                  <b>{it.minutes || 0}m</b>
+                  <button onClick={() => updateSession({ items: editSession.items.map((x, j) => j === i ? { ...x, minutes: clamp((x.minutes || 0) + 5, 0, 120) } : x) })}>+</button>
+                </div>
+              </div>
+              <input className="field small" value={it.note || ""} placeholder="Setup or coaching note"
+                onChange={(e) => updateSession({ items: editSession.items.map((x, j) => j === i ? { ...x, note: e.target.value } : x) })} />
+              <div className="sessactions">
+                <button className="ic sm" onClick={() => moveItem(i, -1)} disabled={i === 0}><ChevronUp size={14} /></button>
+                <button className="ic sm" onClick={() => moveItem(i, 1)} disabled={i === editSession.items.length - 1}><ChevronDown size={14} /></button>
+                <button className="ic sm" onClick={() => {
+                  const d = library.find((x) => x.id === it.drillId);
+                  if (!d) { flash("That drill is no longer in your library"); return; }
+                  setHistory((h) => [...h, drill]);
+                  setDrill(deepClone(d)); setStep(0); setT(0); tRef.current = 0; setSel(null); setSheet(null);
+                }}><ImageIcon size={14} /></button>
+                <button className="ic sm danger" onClick={() => updateSession({ items: editSession.items.filter((_, j) => j !== i) })}><Trash2 size={14} /></button>
+              </div>
+            </div>
+          ))}
+
+          {picking ? (
+            library.length === 0 ? <p className="hint">Save a drill first, then it will show up here.</p> :
+              library.map((d) => (
+                <Row key={d.id} badge={d.steps.length} label={d.name} sub="Add to session" onClick={() => {
+                  updateSession({ items: [...(editSession.items || []), { id: uid(), drillId: d.id, name: d.name, minutes: 10, note: "" }] });
+                  setPicking(false);
+                }} />
+              ))
+          ) : (
+            <Row icon={<Plus size={18} />} label="Add a drill" onClick={() => setPicking(true)} />
+          )}
+
+          <Row icon={<Share2 size={18} />} label="Export session plan" sub={`${(editSession.items || []).reduce((a, b) => a + (b.minutes || 0), 0)} minutes total`}
+            onClick={() => exportSession(editSession)} />
+          <Row icon={<Trash2 size={18} />} label="Delete session" danger onClick={() => {
+            saveSessions(sessions.filter((s) => s.id !== editSession.id));
+            setEditSession(null); setSheet("library"); setTab("sessions");
+          }} />
+        </Sheet>
+      )}
+
+      {busy && (
+        <div className="busy">
+          <div className="busycard">
+            <div className="spinner" />
+            <span>{busy.label}</span>
+            {busy.pct != null && <div className="track"><i style={{ width: `${Math.round(busy.pct * 100)}%` }} /></div>}
+          </div>
+        </div>
+      )}
+
+      {toast && <div className="toast">{toast}</div>}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------ small ui */
+
+function Row({ icon, badge, label, sub, onClick, danger }) {
+  return (
+    <button className={"listrow" + (danger ? " danger" : "")} onClick={onClick}>
+      {badge != null ? <span className="mini">{badge}</span> : <span className="rowicon">{icon}</span>}
+      <span className="rowtext">{label}{sub ? <em>{sub}</em> : null}</span>
+      <ChevronRight size={16} className="chev" />
+    </button>
+  );
+}
+
+function PalBtn({ label, onClick, children }) {
+  return (
+    <button className="pal" onClick={onClick}>
+      <span className="palicon">{children}</span>
+      <span>{label}</span>
+    </button>
+  );
+}
+
+function Sheet({ title, children, onClose, head }) {
+  return (
+    <div className="scrim" onClick={onClose}>
+      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="grabber" />
+        <div className="sheethead"><h2>{title}</h2><button className="ic" onClick={onClose}><X size={17} /></button></div>
+        {head}
+        <div className="sheetbody">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+/* ------------------------------------------------------------------ css */
+
+const CSS = `
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+.app {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  background: #F2F2F7; color: #1C1C1E; overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+button { font: inherit; border: none; background: none; color: inherit; cursor: pointer; }
+input { font: inherit; }
+
+.bar {
+  display: flex; align-items: center; gap: 8px; padding: calc(10px + env(safe-area-inset-top)) 12px 10px;
+  background: rgba(255,255,255,0.82); backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 0.5px solid rgba(0,0,0,0.12); z-index: 5;
+}
+.title { flex: 1; min-width: 0; border: none; background: none; outline: none; font-size: 17px; font-weight: 600; letter-spacing: -0.3px; padding: 4px 2px; }
+.row { display: flex; gap: 6px; align-items: center; }
+.ic { width: 34px; height: 34px; border-radius: 17px; display: grid; place-items: center; background: rgba(118,118,128,0.12); color: #007AFF; transition: transform .12s; }
+.ic:active { transform: scale(0.92); }
+.ic:disabled { opacity: 0.3; }
+.ic.primary { background: #007AFF; color: #fff; }
+.ic.sm { width: 28px; height: 28px; border-radius: 14px; }
+.ic.danger { color: #FF3B30; }
+
+.stage { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+.float { position: absolute; top: 12px; right: 12px; display: flex; flex-direction: column; gap: 8px; }
+.chipbtn { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; background: rgba(255,255,255,0.9); color: #1C1C1E; box-shadow: 0 2px 10px rgba(0,0,0,0.22); backdrop-filter: blur(12px); }
+.chipbtn.on { background: #007AFF; color: #fff; }
+
+.pitchpick { position: absolute; top: 12px; left: 12px; display: flex; padding: 2px; background: rgba(255,255,255,0.86); border-radius: 11px; backdrop-filter: blur(12px); box-shadow: 0 2px 10px rgba(0,0,0,0.2); max-width: 62%; overflow-x: auto; scrollbar-width: none; }
+.pitchpick::-webkit-scrollbar { display: none; }
+.seg { padding: 5px 10px; border-radius: 9px; font-size: 12px; font-weight: 500; color: #3C3C43; white-space: nowrap; }
+.seg.on { background: #fff; color: #007AFF; font-weight: 600; box-shadow: 0 1px 4px rgba(0,0,0,0.16); }
+.segs { display: flex; background: rgba(118,118,128,0.12); border-radius: 9px; padding: 2px; }
+.segs .seg.on { background: #fff; color: #1C1C1E; }
+.segs.tight .seg { padding: 4px 8px; font-size: 12px; }
+.tabs { display: flex; background: rgba(118,118,128,0.12); border-radius: 9px; padding: 2px; margin-bottom: 10px; }
+.tabs .seg { flex: 1; text-align: center; font-size: 13px; }
+.tabs .seg.on { background: #fff; color: #1C1C1E; }
+
+.inspector {
+  position: absolute; left: 10px; right: 10px; bottom: 10px;
+  background: rgba(255,255,255,0.94); backdrop-filter: saturate(180%) blur(20px);
+  border-radius: 16px; padding: 10px 12px 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.24);
+  display: flex; flex-direction: column; gap: 9px; animation: rise .18s ease-out;
+}
+@keyframes rise { from { transform: translateY(10px); opacity: 0 } to { transform: none; opacity: 1 } }
+.insphead { display: flex; align-items: center; justify-content: space-between; }
+.kindname { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 7px; }
+.badge { font-style: normal; font-size: 10px; font-weight: 600; color: #007AFF; background: rgba(0,122,255,0.12); padding: 2px 6px; border-radius: 6px; }
+.swatches { display: flex; gap: 7px; overflow-x: auto; scrollbar-width: none; }
+.swatches::-webkit-scrollbar { display: none; }
+.sw { width: 26px; height: 26px; border-radius: 13px; flex: 0 0 auto; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.12); }
+.sw.on { box-shadow: 0 0 0 2px #fff, 0 0 0 4px #007AFF; }
+.field { border: none; outline: none; background: rgba(118,118,128,0.12); border-radius: 9px; padding: 9px 11px; font-size: 14px; width: 100%; }
+.field.big { font-size: 17px; font-weight: 600; }
+.field.small { font-size: 13px; padding: 7px 10px; }
+.stepper { display: flex; align-items: center; gap: 8px; }
+.stepper button { width: 30px; height: 28px; border-radius: 8px; background: rgba(118,118,128,0.12); font-size: 16px; color: #007AFF; }
+.lbl { font-size: 12px; color: #6C6C70; }
+.moverow { display: flex; flex-direction: column; gap: 6px; }
+.carryrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.minibtn { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: #007AFF; background: rgba(0,122,255,0.1); padding: 6px 10px; border-radius: 8px; flex: 0 0 auto; }
+
+.dock { background: rgba(255,255,255,0.9); backdrop-filter: saturate(180%) blur(20px); border-top: 0.5px solid rgba(0,0,0,0.12); padding: 8px 10px calc(10px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 8px; z-index: 4; }
+.steps { display: flex; gap: 6px; align-items: center; overflow-x: auto; scrollbar-width: none; }
+.steps::-webkit-scrollbar { display: none; }
+.stepchip { flex: 0 0 auto; min-width: 32px; height: 30px; padding: 0 9px; border-radius: 9px; background: rgba(118,118,128,0.12); font-size: 13px; font-weight: 600; color: #3C3C43; display: grid; place-items: center; }
+.stepchip.on { background: #007AFF; color: #fff; }
+.stepchip.add { color: #007AFF; }
+.stepchip.del { color: #FF3B30; }
+.dur { display: flex; align-items: center; gap: 4px; font-size: 12px; color: #6C6C70; }
+.dur button { width: 24px; height: 24px; border-radius: 7px; background: rgba(118,118,128,0.12); color: #007AFF; }
+.notefield { border: none; outline: none; background: rgba(118,118,128,0.1); border-radius: 9px; padding: 8px 11px; font-size: 13px; width: 100%; }
+
+.transport { display: flex; align-items: center; gap: 10px; }
+.play { width: 44px; height: 44px; border-radius: 22px; background: #007AFF; color: #fff; display: grid; place-items: center; box-shadow: 0 3px 12px rgba(0,122,255,0.35); transition: transform .12s; }
+.play:active { transform: scale(0.93); }
+.scrub { flex: 1; min-width: 40px; accent-color: #007AFF; height: 22px; }
+
+.palette { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+.palette::-webkit-scrollbar { display: none; }
+.pal { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 10px; font-weight: 500; color: #3C3C43; width: 58px; }
+.palicon { width: 44px; height: 40px; border-radius: 12px; background: rgba(118,118,128,0.12); display: grid; place-items: center; transition: transform .12s, background .12s; }
+.pal:active .palicon { transform: scale(0.92); background: rgba(118,118,128,0.22); }
+.dot { width: 18px; height: 18px; border-radius: 9px; display: block; }
+.tri { width: 0; height: 0; border-left: 9px solid transparent; border-right: 9px solid transparent; border-bottom: 16px solid #FF9F0A; display: block; }
+.disc { width: 20px; height: 9px; border-radius: 10px / 5px; background: #FFD60A; display: block; }
+.gate { display: flex; gap: 10px; align-items: flex-end; }
+.gate i { width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 11px solid #FF9F0A; }
+.goal { width: 26px; height: 10px; border: 2px solid #6C6C70; border-bottom-color: transparent; border-radius: 3px 3px 0 0; display: block; }
+.note { font-size: 16px; font-weight: 700; color: #3C3C43; }
+
+.scrim { position: absolute; inset: 0; background: rgba(0,0,0,0.35); z-index: 20; display: flex; align-items: flex-end; animation: fade .2s ease-out; }
+@keyframes fade { from { opacity: 0 } to { opacity: 1 } }
+.sheet { width: 100%; max-height: 86%; background: #F2F2F7; border-radius: 18px 18px 0 0; padding: 8px 14px calc(18px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; animation: slide .26s cubic-bezier(0.32,0.72,0,1); }
+@keyframes slide { from { transform: translateY(100%) } to { transform: none } }
+.grabber { width: 36px; height: 5px; border-radius: 3px; background: rgba(60,60,67,0.3); margin: 2px auto 8px; }
+.sheethead { display: flex; align-items: center; justify-content: space-between; padding-bottom: 8px; }
+.sheethead h2 { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.4px; }
+.sheetbody { overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-bottom: 4px; }
+.listrow { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: #fff; border-radius: 13px; padding: 13px 14px; font-size: 15px; color: #1C1C1E; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.listrow:active { background: #EDEDF2; }
+.listrow.danger { color: #FF3B30; }
+.listrow.danger .rowicon { color: #FF3B30; }
+.rowicon { flex: 0 0 auto; color: #007AFF; display: grid; place-items: center; width: 22px; }
+.rowtext { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rowtext em { font-style: normal; font-size: 12px; color: #8E8E93; }
+.chev { flex: 0 0 auto; color: #C7C7CC; }
+.mini { flex: 0 0 auto; width: 26px; height: 26px; border-radius: 8px; background: #007AFF; color: #fff; font-size: 12px; font-weight: 700; display: grid; place-items: center; }
+.hint { margin: 2px 4px 4px; font-size: 13px; color: #8E8E93; line-height: 1.45; }
+
+.help { display: flex; flex-direction: column; gap: 10px; }
+.help section { background: #fff; border-radius: 13px; padding: 13px 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.help h3 { margin: 0 0 8px; font-size: 14px; font-weight: 700; letter-spacing: -0.2px; color: #1C1C1E; }
+.help ul { margin: 0; padding-left: 17px; display: flex; flex-direction: column; gap: 7px; }
+.help li { font-size: 13.5px; line-height: 1.45; color: #3C3C43; }
+.help b { color: #1C1C1E; font-weight: 600; }
+.legend { width: 100%; max-width: 260px; margin: 12px 0 2px; display: block; }
+
+.sessitem { background: #fff; border-radius: 13px; padding: 11px 12px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.sessrow { display: flex; align-items: center; gap: 10px; }
+.idx { width: 22px; height: 22px; border-radius: 7px; background: rgba(0,122,255,0.12); color: #007AFF; font-size: 11px; font-weight: 700; display: grid; place-items: center; flex: 0 0 auto; }
+.sessname { flex: 1; font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.minstep { display: flex; align-items: center; gap: 4px; font-size: 13px; color: #3C3C43; flex: 0 0 auto; }
+.minstep button { width: 26px; height: 26px; border-radius: 8px; background: rgba(118,118,128,0.12); color: #007AFF; }
+.minstep b { min-width: 34px; text-align: center; font-weight: 600; }
+.sessactions { display: flex; gap: 6px; justify-content: flex-end; }
+
+.busy { position: absolute; inset: 0; background: rgba(0,0,0,0.4); z-index: 40; display: grid; place-items: center; }
+.busycard { background: rgba(28,28,30,0.95); color: #fff; border-radius: 16px; padding: 20px 26px; display: flex; flex-direction: column; align-items: center; gap: 12px; font-size: 14px; min-width: 190px; }
+.spinner { width: 26px; height: 26px; border-radius: 13px; border: 2.5px solid rgba(255,255,255,0.25); border-top-color: #fff; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg) } }
+.track { width: 150px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.2); overflow: hidden; }
+.track i { display: block; height: 100%; background: #0A84FF; transition: width .15s linear; }
+
+.toast { position: absolute; left: 50%; bottom: 100px; transform: translateX(-50%); background: rgba(28,28,30,0.92); color: #fff; padding: 9px 15px; border-radius: 20px; font-size: 13px; z-index: 50; animation: fade .18s ease-out; backdrop-filter: blur(8px); max-width: 86%; text-align: center; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+`;
+
+
+/* ------------------------------------------------------------- mount it */
+const splash = document.getElementById("splash");
+if (splash) splash.remove();
+ReactDOM.createRoot(document.getElementById("root")).render(<DrillDesigner />);
+
+</script>
+
+<script>
+  if ("serviceWorker" in navigator && location.protocol === "https:") {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("./sw.js").catch(function () {});
+    });
+  }
+</script>
+</body>
+</html>
