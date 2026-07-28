@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Drill Designer</title>
+<title>Rondo</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-<meta name="description" content="Build, simulate and share football training drills." />
+<meta name="description" content="Rondo — design, simulate and share football training drills." />
 <meta name="theme-color" content="#0E3524" />
 <link rel="manifest" href="./manifest.webmanifest" />
 <link rel="apple-touch-icon" href="./icon-180.png" />
@@ -12,9 +12,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="Drills" />
+<meta name="apple-mobile-web-app-title" content="Rondo" />
 <style>
-  html, body { margin: 0; padding: 0; height: 100%; overscroll-behavior: none; background: #0E3524; }
+  html, body { margin: 0; padding: 0; height: 100%; overscroll-behavior: none; background: #071B12; }
   body { position: fixed; left: 0; right: 0; top: 0; overflow: hidden; -webkit-user-select: none; user-select: none; }
   /* --app-h tracks the visible viewport, so the bottom dock is never left
      underneath the browser toolbar or the on-screen keyboard. */
@@ -22,7 +22,8 @@
   #root { position: fixed; left: 0; right: 0; top: 0; }
   #splash {
     position: fixed; inset: 0; display: flex; flex-direction: column; gap: 14px;
-    align-items: center; justify-content: center; background: #0E3524; color: #fff;
+    align-items: center; justify-content: center; color: #fff;
+    background: radial-gradient(120% 80% at 50% 0%, #0E3524 0%, #071B12 68%, #04100A 100%);
     font: 500 15px -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   }
   #splash .ring { width: 28px; height: 28px; border-radius: 14px; border: 3px solid rgba(255,255,255,.25); border-top-color: #fff; animation: sp .8s linear infinite; }
@@ -34,7 +35,7 @@
 <div id="root"></div>
 <div id="splash">
   <div class="ring"></div>
-  <span>Loading Drill Designer</span>
+  <span>Loading Rondo</span>
   <small id="splashnote"></small>
 </div>
 
@@ -76,6 +77,10 @@
 <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
 
 <script type="text/babel" data-presets="react">
+
+
+
+
 
 
 
@@ -146,7 +151,7 @@ const KIT = [
 ];
 
 const PITCHES = {
-  grid: { label: "Training grid", w: 40, h: 30, marks: "grid" },
+  grid: { label: "Grid", w: 40, h: 30, marks: "grid" },
   third: { label: "Final third", w: 68, h: 42, marks: "end" },
   half: { label: "Half pitch", w: 68, h: 52.5, marks: "end" },
   full: { label: "Full pitch", w: 68, h: 105, marks: "full" },
@@ -360,9 +365,11 @@ function storedAccess() {
 
 const SKILLS = [
   { id: "passing", label: "Passing" },
+  { id: "firsttouch", label: "First touch" },
   { id: "dribbling", label: "Dribbling" },
   { id: "shooting", label: "Shooting" },
   { id: "defending", label: "Defending" },
+  { id: "ssg", label: "Small-sided" },
 ];
 const LEVELS = [{ id: 1, label: "Easy" }, { id: 2, label: "Medium" }, { id: 3, label: "Hard" }];
 const AGES = ["U6–U8", "U9–U11", "U12+"];
@@ -373,7 +380,7 @@ const pl = (x, y, c, label) => ["player", x, y, { color: c || CB, label: label |
 const bl = (x, y) => ["ball", x, y, { color: "#FFFFFF" }];
 const cn = (x, y) => ["cone", x, y, { color: CO }];
 const gt = (x, y, rot) => ["gate", x, y, { color: CO, rot: rot || 0, size: 1 }];
-const gl = (x, y, size) => ["goal", x, y, { color: CW, size: size || 2 }];
+const gl = (x, y, size, rot) => ["goal", x, y, { color: CW, size: size || 2, rot: rot || 0 }];
 
 /* Compiles a compact spec into a full drill: pieces keyed by name, then one
    frame per phase listing only what moves. */
@@ -665,6 +672,597 @@ const BANK = [
       { n: "The pass is the trigger — go as it travels", to: { ball: [21.2, 17.2], p1: [17, 12.5] }, d: 0.9, carry: { ball: "r" } },
       { n: "First presser takes the ball, second covers", to: { p1: [19, 14.5], p2: [24, 13.5], r: [20.5, 17] }, d: 0.8 },
       { n: "Win it on their first touch and go forward", to: { ball: [19, 15], r: [22, 18], p1: [19.5, 15.5] }, d: 0.7, carry: { ball: null } },
+    ]
+  ),
+
+  /* ------------------------------------------------------ passing (more) */
+  mkBank(
+    { id: "pass5", name: "Give and go", skill: "passing", level: 1, ages: "U9–U11", pitch: "grid",
+      players: "Pairs", kit: "3 cones, 1 ball per pair",
+      setup: "A cone stands in for a defender. The player on the ball passes to a wall player and runs past the cone to collect the return.",
+      points: ["Pass and go — the run starts the moment the ball leaves your foot", "Wall player returns it first time", "Return the ball into the space ahead, not to the feet", "Take the return in your stride and keep going"],
+      easier: "Let the wall player take a touch before returning it.",
+      harder: "Replace the cone with a live defender, and make both passes one touch." },
+    { a: pl(12, 24, CB, "1"), b: pl(24, 20, CB, "2"), ball: bl(13.2, 25),
+      c1: cn(19, 17), g1: gt(20, 6, 0) },
+    [
+      { n: "Wall player set, one cone to beat", carry: { ball: "a" } },
+      { n: "Pass into the wall player and go", to: { ball: [23, 21], a: [16, 19] }, d: 1, carry: { ball: "b" } },
+      { n: "First-time return into the space, not the feet", to: { ball: [18, 13], a: [16.8, 12.5] }, d: 0.9, carry: { ball: "a" } },
+      { n: "Take it in your stride and attack the gate", to: { a: [20, 8], ball: [21.2, 9] }, d: 0.9 },
+    ]
+  ),
+  mkBank(
+    { id: "pass6", name: "Switch the play", skill: "passing", level: 2, ages: "U12+", pitch: "grid",
+      players: "5 to 8", kit: "6 cones, bibs, balls",
+      setup: "Two halves of a grid with a player in the middle. Keep the ball on one side to drag the defenders across, then switch it to the far side through the middle player.",
+      points: ["Work one side until both defenders commit", "The middle player takes their touch across, towards the far side", "Switch early — the moment the far player is free", "Far side stays wide and ready, not ball watching"],
+      easier: "Take the defenders out and just rehearse the pattern at speed.",
+      harder: "Two touch, and a point only counts if the switch reaches the far player first time." },
+    { l1: pl(8, 10, CB, "1"), l2: pl(8, 20, CB, "2"), m: pl(20, 15, CB, "3"),
+      r1: pl(32, 10, CB, "4"), r2: pl(32, 20, CB, "5"),
+      d1: pl(13, 13, CR, ""), d2: pl(13, 19, CR, ""), ball: bl(9.2, 11),
+      c1: cn(20, 3), c2: cn(20, 27) },
+    [
+      { n: "Both defenders on the ball side", carry: { ball: "l1" } },
+      { n: "Work the near side to drag them across", to: { ball: [9.2, 21], d1: [11, 16] }, d: 0.9, carry: { ball: "l2" } },
+      { n: "Find the middle player between the lines", to: { ball: [21.2, 16], d2: [16, 18] }, d: 0.9, carry: { ball: "m" } },
+      { n: "Switch it early — the far side is free", to: { ball: [31, 11], m: [22, 13] }, d: 1, carry: { ball: "r1" } },
+    ]
+  ),
+  mkBank(
+    { id: "pass7", name: "Three-zone possession", skill: "passing", level: 3, ages: "U12+", pitch: "grid",
+      players: "6 to 10", kit: "6 cones, bibs, balls",
+      setup: "The grid is split into three zones. The ball has to travel from the back zone to the front zone, and it has to be played through a player in the middle — no long balls over the top.",
+      points: ["Break the first line rather than passing sideways", "Middle players receive on the half-turn, already facing forward", "If the forward pass is blocked, switch inside the zone and try again", "The third pass is the one that hurts — be ready for it"],
+      easier: "Remove one defender and allow the ball to be carried between zones.",
+      harder: "Three-second limit in the middle zone, or add a defender who can follow the ball between zones." },
+    { b: pl(8, 15, CB, "1"), m1: pl(20, 10, CB, "2"), m2: pl(20, 21, CB, "3"), f: pl(33, 15, CB, "4"),
+      d1: pl(15, 15, CR, ""), d2: pl(27, 15, CR, ""), ball: bl(9.2, 16),
+      c1: cn(14, 3), c2: cn(14, 27), c3: cn(26, 3), c4: cn(26, 27) },
+    [
+      { n: "Three zones, ball starts at the back", carry: { ball: "b" } },
+      { n: "Break the first line into the middle", to: { ball: [21.2, 11], d1: [17, 13] }, d: 0.9, carry: { ball: "m1" } },
+      { n: "Blocked? Switch inside the zone", to: { ball: [21.2, 22], d1: [19, 14], d2: [25, 18] }, d: 0.8, carry: { ball: "m2" } },
+      { n: "Third pass finds the front player", to: { ball: [32, 16], d2: [28, 19] }, d: 0.9, carry: { ball: "f" } },
+    ]
+  ),
+
+  /* ------------------------------------------------------------ first touch */
+  mkBank(
+    { id: "touch1", name: "Open up and receive", skill: "firsttouch", level: 1, ages: "U9–U11", pitch: "grid",
+      players: "Pairs", kit: "4 cones, 1 ball per pair",
+      setup: "A server plays into a receiver who has a gate to attack behind them. The receiver opens their body, takes the first touch across into space, and goes through the gate.",
+      points: ["Open your hips before the ball arrives so you can see both ways", "First touch across your body, not back where it came from", "Take it into space, not under your feet", "Second touch should already be going somewhere"],
+      easier: "Roll the ball in slowly and let them take as many touches as they need.",
+      harder: "Firmer service, two-touch limit, and add a defender pressing from behind." },
+    { s: pl(8, 15, CB, "S"), r: pl(24, 15, CB, "R"), ball: bl(9.2, 16),
+      g1: gt(36, 15, 90), c1: cn(24, 6), c2: cn(24, 24) },
+    [
+      { n: "Server on one side, gate to attack behind", carry: { ball: "s" } },
+      { n: "Open your body before it arrives", to: { ball: [22.8, 16] }, d: 1, carry: { ball: "r" } },
+      { n: "First touch across your body into space", to: { r: [29, 12], ball: [30.2, 13] }, d: 0.8 },
+      { n: "Second touch takes you through the gate", to: { r: [35, 15], ball: [36.2, 16] }, d: 0.8 },
+    ]
+  ),
+  mkBank(
+    { id: "touch2", name: "Turning gates", skill: "firsttouch", level: 1, ages: "U6–U8", pitch: "grid",
+      players: "Any, one ball each", kit: "1 cone per player, 1 ball per player",
+      setup: "A cone in front of each player. Dribble up to it, turn, dribble back. Call a different turn each round — sole drag, inside hook, outside hook, Cruyff.",
+      points: ["Slow down as you get to the cone — you cannot turn at full speed", "Turn tight, the ball stays within a stride", "Explode out of the turn, that is where you beat someone", "Both feet — one round each way"],
+      easier: "Walk it through and name the turn out loud as they do it.",
+      harder: "Time it, or put a defender on the cone so the turn has to be away from pressure." },
+    { p1: pl(10, 22, CB, "1"), b1: bl(11.2, 23), p2: pl(20, 22, CB, "2"), b2: bl(21.2, 23),
+      p3: pl(30, 22, CB, "3"), b3: bl(31.2, 23), c1: cn(10, 9), c2: cn(20, 9), c3: cn(30, 9) },
+    [
+      { n: "A ball each, a cone each", carry: { b1: "p1", b2: "p2", b3: "p3" } },
+      { n: "Dribble to the cone, head up", to: { p1: [10, 12], b1: [11.2, 13], p2: [20, 12], b2: [21.2, 13], p3: [30, 12], b3: [31.2, 13] }, d: 1.2 },
+      { n: "Turn tight — drag it back with the sole", to: { p1: [11, 15], b1: [9.9, 15.5], p2: [21, 15], b2: [19.9, 15.5], p3: [31, 15], b3: [29.9, 15.5] }, d: 0.8 },
+      { n: "Explode out of the turn", to: { p1: [10, 22], b1: [11.2, 23], p2: [20, 22], b2: [21.2, 23], p3: [30, 22], b3: [31.2, 23] }, d: 1.1 },
+    ]
+  ),
+  mkBank(
+    { id: "touch3", name: "Check away and receive", skill: "firsttouch", level: 2, ages: "U9–U11", pitch: "grid",
+      players: "3 or more", kit: "4 cones, bibs, balls",
+      setup: "A marked receiver has to create their own space before the pass comes: move away from the ball first, then come short to meet it.",
+      points: ["Move away before you come to meet it — sell the first movement", "Come towards the ball, don't stand and wait for it", "Get your body between the defender and the ball", "First touch away from the side the defender is on"],
+      easier: "Defender starts three metres off so there is time to receive.",
+      harder: "Defender is live from the start, and the receiver must play forward within two touches." },
+    { s: pl(20, 26, CB, "S"), r: pl(20, 14, CB, "R"), d: pl(20, 10, CR, ""), ball: bl(21.2, 27),
+      c1: cn(8, 8), c2: cn(32, 8), c3: cn(8, 24), c4: cn(32, 24) },
+    [
+      { n: "Marked from behind — you have to make your own space", carry: { ball: "s" } },
+      { n: "Move away first, then come to meet it", to: { r: [24, 17], d: [22, 12] }, d: 1 },
+      { n: "Ball into the front foot", to: { ball: [22.8, 18] }, d: 0.8, carry: { ball: "r" } },
+      { n: "First touch away from the defender's side", to: { r: [28, 14], ball: [29.2, 15], d: [24, 14] }, d: 0.8 },
+    ]
+  ),
+  mkBank(
+    { id: "touch4", name: "Receive and play forward", skill: "firsttouch", level: 3, ages: "U12+", pitch: "grid",
+      players: "4 or more", kit: "4 cones, bibs, balls",
+      setup: "A midfielder receives with a defender behind them and a forward ahead. Scan, take the touch out of the pressure, and get the ball forward in two touches.",
+      points: ["Scan over both shoulders before the ball arrives", "First touch out of the pressure, into space you already knew was there", "Head up on the second touch — decide early", "If forward is off, don't force it: keep it and reset"],
+      easier: "Defender passive, and allow three touches.",
+      harder: "Two touch maximum, live defender, and the forward pass must be to the far foot." },
+    { s: pl(8, 15, CB, "1"), m: pl(20, 15, CB, "2"), f: pl(33, 15, CB, "3"), d: pl(23, 15, CR, ""),
+      ball: bl(9.2, 16), c1: cn(20, 5), c2: cn(20, 25) },
+    [
+      { n: "Midfielder marked from behind, forward ahead", carry: { ball: "s" } },
+      { n: "Scan over your shoulder before it arrives", to: { ball: [18.8, 16], d: [22, 13] }, d: 1, carry: { ball: "m" } },
+      { n: "First touch out of the pressure", to: { m: [19, 19], ball: [20.2, 20], d: [21, 16] }, d: 0.8 },
+      { n: "Second touch plays forward", to: { ball: [31.8, 16] }, d: 0.8, carry: { ball: "f" } },
+    ]
+  ),
+
+  /* ---------------------------------------------------- dribbling (more) */
+  mkBank(
+    { id: "drib5", name: "Traffic lights", skill: "dribbling", level: 1, ages: "U6–U8", pitch: "grid",
+      players: "Any, one ball each", kit: "4 cones, 1 ball per player",
+      setup: "Everyone dribbles inside a box. Green means go, red means stop the ball dead with the sole, amber means turn and go the other way. Call them in a random order.",
+      points: ["Head up — you cannot avoid people looking at your feet", "Stop it dead, sole on top, don't let it roll", "Little touches when it's busy, bigger ones in space", "Change direction sharply on amber, don't drift round"],
+      easier: "Bigger box, fewer calls, and demonstrate each one first.",
+      harder: "Shrink the box, add a call for a specific turn, or make the last player to react do a forfeit." },
+    { p1: pl(12, 10, CB, "1"), b1: bl(13.2, 11), p2: pl(28, 10, CB, "2"), b2: bl(29.2, 11),
+      p3: pl(12, 20, CB, "3"), b3: bl(13.2, 21), p4: pl(28, 20, CB, "4"), b4: bl(29.2, 21),
+      c1: cn(6, 6), c2: cn(34, 6), c3: cn(6, 24), c4: cn(34, 24) },
+    [
+      { n: "Everyone dribbling inside the box", carry: { b1: "p1", b2: "p2", b3: "p3", b4: "p4" } },
+      { n: "Green — dribble anywhere, head up", to: { p1: [17, 15], b1: [18.2, 16], p2: [24, 16], b2: [25.2, 17], p3: [15, 16], b3: [16.2, 17], p4: [26, 12], b4: [27.2, 13] }, d: 1.2 },
+      { n: "Red — stop it dead with your sole", to: { p1: [18, 16], b1: [18.6, 16.4], p2: [23, 17], b2: [23.6, 17.4], p3: [16, 17], b3: [16.6, 17.4], p4: [25, 13], b4: [25.6, 13.4] }, d: 0.5 },
+      { n: "Amber — turn and go the other way", to: { p1: [11, 21], b1: [12.2, 22], p2: [31, 21], b2: [32.2, 22], p3: [10, 9], b3: [11.2, 10], p4: [31, 8], b4: [32.2, 9] }, d: 1.2 },
+    ]
+  ),
+  mkBank(
+    { id: "drib6", name: "Sharks and minnows", skill: "dribbling", level: 2, ages: "U6–U8", pitch: "grid",
+      players: "6 or more", kit: "4 cones, 1 ball per dribbler, 2 bibs",
+      setup: "Dribblers line up on one side with a ball each and two sharks start in the middle with none. On the call, everyone crosses. Lose your ball and you become a shark.",
+      points: ["Look for the gap before you set off, not once you're in trouble", "Change of speed gets you past — burst through the gap", "Keep the ball on the far side from the shark", "Sharks: don't just chase, cut off where they want to go"],
+      easier: "Wider area and only one shark to start with.",
+      harder: "Narrow the area, or make dribblers cross a set number of times inside a time limit." },
+    { p1: pl(10, 25, CB, "1"), b1: bl(11.2, 26), p2: pl(20, 25, CB, "2"), b2: bl(21.2, 26),
+      p3: pl(30, 25, CB, "3"), b3: bl(31.2, 26),
+      d1: pl(15, 15, CR, "S"), d2: pl(27, 15, CR, "S"),
+      c1: cn(5, 5), c2: cn(35, 5), c3: cn(5, 27), c4: cn(35, 27) },
+    [
+      { n: "Balls at one end, two sharks in the middle", carry: { b1: "p1", b2: "p2", b3: "p3" } },
+      { n: "Find the gap before you set off", to: { p1: [8, 18], b1: [9.2, 19], p2: [22, 18], b2: [23.2, 19], p3: [33, 18], b3: [34.2, 19], d1: [13, 16], d2: [28, 16] }, d: 1.1 },
+      { n: "Burst through — change of speed beats them", to: { p1: [7, 8], b1: [8.2, 9], p3: [34, 8], b3: [35.2, 9], p2: [21, 15], d1: [11, 12], d2: [30, 12] }, d: 1 },
+      { n: "Ball gone? You're a shark now", to: { b2: [17, 13], p2: [21, 16] }, d: 0.8, carry: { b2: null } },
+    ]
+  ),
+  mkBank(
+    { id: "drib7", name: "Beat two zones", skill: "dribbling", level: 3, ages: "U12+", pitch: "grid",
+      players: "3 or more", kit: "6 cones, bibs, balls",
+      setup: "Two zones, a defender in each. The attacker has to beat the first defender, then go straight at the second with no rest in between, and finish through the gate.",
+      points: ["Attack the first defender's front foot, then change direction", "Head up straight away — the second one is already coming", "Different move on the second defender, don't repeat yourself", "If you lose it, it's a reset, not a rest"],
+      easier: "One defender at a time with a walk back between.",
+      harder: "Defenders can recover into the next zone, making it a 1v2 near the gate." },
+    { a: pl(20, 27, CB, "A"), d1: pl(20, 20, CR, "1"), d2: pl(20, 10, CR, "2"), ball: bl(21.2, 28),
+      c1: cn(6, 24), c2: cn(34, 24), c3: cn(6, 15), c4: cn(34, 15), g1: gt(20, 4, 0) },
+    [
+      { n: "Two zones, a defender in each", carry: { ball: "a" } },
+      { n: "Beat the first with a change of direction", to: { a: [15, 21], ball: [16.2, 22], d1: [17.5, 20] }, d: 1 },
+      { n: "Straight into the second — no rest", to: { a: [24, 13], ball: [25.2, 14], d1: [18, 19], d2: [21.5, 11] }, d: 1 },
+      { n: "Through the gate under control", to: { a: [20, 5], ball: [21.2, 6], d2: [23, 9] }, d: 0.8 },
+    ]
+  ),
+
+  /* ----------------------------------------------------- shooting (more) */
+  mkBank(
+    { id: "shot5", name: "Four corners", skill: "shooting", level: 1, ages: "U6–U8", pitch: "third",
+      players: "Any", kit: "Balls, 2 cones, one goal",
+      setup: "A cone just inside each post. Players shoot in turn from about 12 metres and score more for hitting a corner than the middle. No keeper to start with.",
+      points: ["Non-kicking foot beside the ball, pointing where you want it", "Side foot for accuracy — power comes later", "Look at the corner, then look at the ball", "Both feet: one round with each"],
+      easier: "Move closer, widen the target cones, and let them place it.",
+      harder: "Add a keeper, move back, and make it one touch from a rolled pass." },
+    { q1: pl(30, 17, CB, "1"), b1: bl(31.2, 18), q2: pl(38, 17, CB, "2"), b2: bl(39.2, 18),
+      goal: gl(34, 1.2, 2), c1: cn(31.5, 3.4), c2: cn(36.5, 3.4) },
+    [
+      { n: "A cone inside each post — corners score double", carry: { b1: "q1", b2: "q2" } },
+      { n: "Look at the corner, then look at the ball", to: { b1: [31.5, 3.5], q1: [31, 14] }, d: 0.7, carry: { b1: null } },
+      { n: "Now the other side, other foot", to: { b2: [36.5, 3.5], q2: [37, 14] }, d: 0.7, carry: { b2: null } },
+    ]
+  ),
+  mkBank(
+    { id: "shot6", name: "One-two and finish", skill: "shooting", level: 2, ages: "U9–U11", pitch: "third",
+      players: "3 or more", kit: "Balls, 2 cones, one goal",
+      setup: "The shooter plays a one-two with a wall player on the edge of the area, takes the return in their stride and finishes first time.",
+      points: ["Pass and go — don't admire the pass", "Wall player returns it first time into the run", "One touch to set the ball, one to finish", "Aim low and across the keeper"],
+      easier: "Wall player takes a touch, shooter can take two before shooting.",
+      harder: "Add a defender who starts level with the wall player and chases the run." },
+    { a: pl(34, 26, CB, "9"), w: pl(34, 18, CB, "W"), k: pl(34, 5, CY, "GK"), ball: bl(35.2, 27),
+      goal: gl(34, 1.2, 2), c1: cn(26, 20), c2: cn(42, 20) },
+    [
+      { n: "Wall player on the edge of the area", carry: { ball: "a" } },
+      { n: "Play it in and run past", to: { ball: [34.8, 19.2], a: [30, 22] }, d: 0.9, carry: { ball: "w" } },
+      { n: "Return it first time into the run", to: { ball: [29.5, 15], a: [29, 14] }, d: 0.8, carry: { ball: "a" } },
+      { n: "One to set, one to finish", to: { ball: [34, 3.5], a: [31, 9] }, d: 0.7, carry: { ball: null } },
+    ]
+  ),
+  mkBank(
+    { id: "shot7", name: "2v1 and finish", skill: "shooting", level: 3, ages: "U12+", pitch: "third",
+      players: "4 or more", kit: "Balls, bibs, one goal",
+      setup: "Two attackers break on one defender. Commit the defender, use the free player if they close you down, and get the shot away before anyone recovers.",
+      points: ["Run at the defender — make them choose", "Only pass when they commit, not before", "The free player attacks the space, not the ball", "Finish first time where possible, the keeper is still moving"],
+      easier: "Defender must stay on their feet and cannot tackle for the first three seconds.",
+      harder: "Add a second defender starting five metres behind, so the shot has to come quickly." },
+    { a1: pl(30, 26, CB, "9"), a2: pl(42, 26, CB, "10"), d: pl(36, 18, CR, "D"), k: pl(34, 5, CY, "GK"),
+      ball: bl(31.2, 27), goal: gl(34, 1.2, 2) },
+    [
+      { n: "Two on one, defender in the middle", carry: { ball: "a1" } },
+      { n: "Run at them and make them choose", to: { a1: [30, 20], ball: [31.2, 21], d: [34, 19], a2: [44, 20] }, d: 1 },
+      { n: "They committed — use the free man", to: { ball: [42.8, 20], d: [38, 18] }, d: 0.8, carry: { ball: "a2" } },
+      { n: "First time before the keeper sets", to: { ball: [34, 3.5], a2: [40, 12] }, d: 0.6, carry: { ball: null } },
+    ]
+  ),
+
+  /* ---------------------------------------------------- defending (more) */
+  mkBank(
+    { id: "def5", name: "Pressure and cover", skill: "defending", level: 2, ages: "U12+", pitch: "grid",
+      players: "4 plus a keeper", kit: "1 goal, bibs, balls",
+      setup: "Two attackers against two defenders. One defender presses the ball, the other tucks in behind to cover. Every time the ball is switched, the roles swap.",
+      points: ["First defender presses the ball, second covers the inside", "Cover means behind and inside, not alongside", "Swap roles as the ball travels, not once it has arrived", "Talk — the covering defender is the one who can see everything"],
+      easier: "Attackers must pass along the ground and cannot dribble past.",
+      harder: "Make it 3v2 so the defenders have to decide who is worth pressing." },
+    { a1: pl(12, 22, CB, "A"), a2: pl(28, 22, CB, "B"), d1: pl(16, 14, CR, "1"), d2: pl(24, 14, CR, "2"),
+      k: pl(20, 7, CY, "GK"), ball: bl(13.2, 23), goal: gl(20, 2.5, 1.6) },
+    [
+      { n: "Two attackers, two defenders, one goal", carry: { ball: "a1" } },
+      { n: "One presses the ball, one covers inside", to: { a1: [14, 19], ball: [15.2, 20], d1: [15, 17], d2: [21, 15] }, d: 1 },
+      { n: "As the ball travels, swap the roles", to: { ball: [26.8, 21], d1: [19, 16], d2: [25, 16] }, d: 0.9, carry: { ball: "a2" } },
+      { n: "New presser, new cover — always a pair", to: { d2: [26, 18], d1: [21, 17], a2: [28, 20] }, d: 0.8 },
+    ]
+  ),
+  mkBank(
+    { id: "def6", name: "Recovery run", skill: "defending", level: 3, ages: "U12+", pitch: "third",
+      players: "Pairs plus a keeper", kit: "Bibs, balls, one goal",
+      setup: "The attacker sets off with the ball and the defender starts behind and wide, having to recover. The defender's job is to get goal-side first, then deal with the ball.",
+      points: ["Run the shortest line to your own goal, not towards the ball", "Get goal-side and inside before you think about tackling", "Arrive under control — sprinting past them is worse than not arriving", "Once level, force them wide and away from the middle"],
+      easier: "Shorten the head start so the recovery is achievable.",
+      harder: "Give the attacker a bigger start, or add a second attacker so recovery has to be decisive." },
+    { a: pl(34, 24, CB, "A"), d: pl(48, 32, CR, "D"), k: pl(34, 5, CY, "GK"),
+      ball: bl(35.2, 25), goal: gl(34, 1.2, 2), c1: cn(48, 36) },
+    [
+      { n: "Attacker away, defender behind and wide", carry: { ball: "a" } },
+      { n: "Sprint the shortest line to your own goal", to: { a: [34, 18], ball: [35.2, 19], d: [42, 24] }, d: 1 },
+      { n: "Get goal-side first, then think about the ball", to: { a: [33, 12], ball: [34.2, 13], d: [36, 16] }, d: 0.9 },
+      { n: "Arrive under control and show them wide", to: { a: [31, 10], ball: [32.2, 11], d: [34, 11] }, d: 0.8 },
+    ]
+  ),
+  mkBank(
+    { id: "def7", name: "Stop the turn", skill: "defending", level: 2, ages: "U9–U11", pitch: "third",
+      players: "3 or more", kit: "Bibs, balls, one goal",
+      setup: "The mirror of the striker's drill. A forward receives with their back to goal and the defender's job is to stop them turning and nick the ball as it arrives.",
+      points: ["Get tight while the ball is travelling, not after it lands", "Front foot forward, side on, close enough to feel them", "Don't dive round the front — that is how you get spun", "Take it on their first touch, when the ball is furthest from their feet"],
+      easier: "Server plays a slower ball so the defender has time to get tight.",
+      harder: "Forward can use a wall player, so the defender has to decide between pressing and covering." },
+    { s: pl(34, 32, CB, "S"), t: pl(34, 18, CB, "9"), d: pl(34, 15, CR, "D"), k: pl(34, 5, CY, "GK"),
+      ball: bl(35.2, 33), goal: gl(34, 1.2, 2), c1: cn(24, 22), c2: cn(44, 22) },
+    [
+      { n: "Forward with their back to goal, defender behind", carry: { ball: "s" } },
+      { n: "Get tight as the ball travels", to: { ball: [34.8, 19.2], d: [34, 16.6] }, d: 0.9, carry: { ball: "t" } },
+      { n: "Side on — don't let them spin you", to: { t: [31, 17], ball: [32, 18.2], d: [32.6, 16.2] }, d: 0.8 },
+      { n: "Nick it on their first touch", to: { ball: [32.4, 16.4], t: [30, 18], d: [32.6, 16.8] }, d: 0.7, carry: { ball: null } },
+    ]
+  ),
+
+  /* ----------------------------------------------------- small-sided games */
+  mkBank(
+    { id: "ssg1", name: "4v4 four goals", skill: "ssg", level: 1, ages: "U6–U8", pitch: "grid",
+      players: "8", kit: "4 mini goals, bibs, balls",
+      setup: "A goal on each of the four sides. Both teams can score in either of the two goals they are attacking, which means there is always a way to turn away from pressure.",
+      points: ["Head up — the free goal is usually the one behind you", "Turn away from pressure instead of fighting through it", "Spread out when you have the ball, squeeze in when you don't", "Everyone defends, everyone attacks — no positions at this age"],
+      easier: "Add a neutral player who always plays for the team in possession.",
+      harder: "Two-touch limit, or a goal only counts if the whole team is over the halfway line." },
+    { b1: pl(13, 9, CB, "1"), b2: pl(27, 9, CB, "2"), b3: pl(13, 21, CB, "3"), b4: pl(27, 21, CB, "4"),
+      r1: pl(20, 6, CR, "1"), r2: pl(20, 24, CR, "2"), r3: pl(9, 15, CR, "3"), r4: pl(31, 15, CR, "4"),
+      ball: bl(14.2, 10), g1: gl(20, 2, 1), g2: gl(20, 28, 1), g3: gl(2.5, 15, 1, 90), g4: gl(37.5, 15, 1, 90) },
+    [
+      { n: "Four goals — two to attack, two to defend", carry: { ball: "b1" } },
+      { n: "Turn away from pressure, don't fight through it", to: { ball: [14.2, 22], r1: [18, 10], r3: [11, 18] }, d: 1, carry: { ball: "b3" } },
+      { n: "Head up — which goal have they left?", to: { b3: [8, 18], ball: [9.2, 19], r3: [12, 17], r2: [17, 22] }, d: 1 },
+      { n: "Score in whichever one is open", to: { ball: [3.6, 15], b3: [6, 16] }, d: 0.7, carry: { ball: null } },
+    ]
+  ),
+  mkBank(
+    { id: "ssg2", name: "3v3 end zones", skill: "ssg", level: 2, ages: "U9–U11", pitch: "grid",
+      players: "6", kit: "8 cones, bibs, balls",
+      setup: "No goals. You score by dribbling the ball under control into the end zone you are attacking. Rewards running with the ball and finding the free player.",
+      points: ["Draw a defender in before you release the free player", "Attack the space, not the person", "Somebody stays behind the ball — don't all commit", "Under control means stopped in the zone, not blasted through it"],
+      easier: "Widen the pitch and make the end zone deeper.",
+      harder: "Score by passing to a team-mate who is already in the zone, so it needs timing not just running." },
+    { b1: pl(15, 20, CB, "1"), b2: pl(25, 20, CB, "2"), b3: pl(20, 15, CB, "3"),
+      r1: pl(15, 10, CR, "1"), r2: pl(25, 10, CR, "2"), r3: pl(20, 6, CR, "3"), ball: bl(21.2, 16),
+      c1: cn(4, 5), c2: cn(36, 5), c3: cn(4, 25), c4: cn(36, 25) },
+    [
+      { n: "Score by dribbling into the end zone", carry: { ball: "b3" } },
+      { n: "Move it to change the picture", to: { ball: [13.8, 21], r1: [16, 13] }, d: 0.9, carry: { ball: "b1" } },
+      { n: "Draw a defender in before you release it", to: { b1: [12, 14], ball: [13.2, 15], b2: [26, 14], r1: [15, 12] }, d: 1 },
+      { n: "Switch it and attack the space", to: { ball: [24.8, 15], r2: [24, 12] }, d: 0.8, carry: { ball: "b2" } },
+    ]
+  ),
+  mkBank(
+    { id: "ssg3", name: "Wide channels", skill: "ssg", level: 2, ages: "U12+", pitch: "half",
+      players: "10 plus a keeper", kit: "8 cones, bibs, balls, one goal",
+      setup: "A channel down each touchline. Only the team in possession may enter a channel, and nobody can be tackled in there — so the wide player always has time to cross.",
+      points: ["Build through the middle first, then release the channel", "Wide player takes it to the byline before looking up", "Two runners in the box every single time — near post and far", "Somebody holds the edge of the area for the cut-back"],
+      easier: "Let the wide player have unlimited touches and take the keeper out.",
+      harder: "Limit the channel player to three touches, and a goal from a cut-back counts double." },
+    { b1: pl(34, 44, CB, "1"), b2: pl(22, 36, CB, "2"), b3: pl(46, 36, CB, "3"),
+      b4: pl(7, 30, CB, "4"), b5: pl(61, 30, CB, "5"),
+      r1: pl(34, 30, CR, "1"), r2: pl(22, 24, CR, "2"), r3: pl(46, 24, CR, "3"), r4: pl(34, 16, CR, "4"),
+      k: pl(34, 6, CY, "GK"), ball: bl(35.2, 45), goal: gl(34, 1.5, 2),
+      c1: cn(13, 50), c2: cn(13, 12), c3: cn(55, 50), c4: cn(55, 12) },
+    [
+      { n: "Channels down each side — no tackling in there", carry: { ball: "b1" } },
+      { n: "Build through the middle first", to: { ball: [23.2, 37], r1: [30, 32] }, d: 1, carry: { ball: "b2" } },
+      { n: "Release the channel — they cannot be touched", to: { ball: [8.2, 31], r2: [20, 27] }, d: 1, carry: { ball: "b4" } },
+      { n: "Get to the byline before you look up", to: { b4: [8, 16], ball: [9.2, 17], b3: [44, 24], b1: [34, 30] }, d: 1.1 },
+      { n: "Two in the box, near post and far", to: { ball: [34, 8], b3: [38, 12], b1: [28, 14] }, d: 0.8, carry: { ball: null } },
+    ]
+  ),
+  mkBank(
+    { id: "ssg4", name: "Transition 3v3 plus two", skill: "ssg", level: 3, ages: "U12+", pitch: "grid",
+      players: "8", kit: "4 cones, 2 bibs of a third colour, balls",
+      setup: "Three against three with two neutral players who always play for whoever has the ball. Possession changes constantly, so the neutrals have to switch sides instantly.",
+      points: ["Neutrals: as soon as it turns over, you are on the other team — move immediately", "First pass after winning it is the important one", "Use the neutral to escape pressure, not to hide", "React to losing it in the first two seconds, that is when they are most open"],
+      easier: "Neutrals get unlimited touches and cannot be tackled.",
+      harder: "One neutral only, or neutrals limited to two touches." },
+    { b1: pl(14, 20, CB, "1"), b2: pl(26, 20, CB, "2"), b3: pl(20, 24, CB, "3"),
+      r1: pl(14, 10, CR, "1"), r2: pl(26, 10, CR, "2"), r3: pl(20, 6, CR, "3"),
+      n1: pl(6, 15, CY, "N"), n2: pl(34, 15, CY, "N"), ball: bl(21.2, 25),
+      c1: cn(4, 4), c2: cn(36, 4), c3: cn(4, 26), c4: cn(36, 26) },
+    [
+      { n: "Two yellows play for whoever has the ball", carry: { ball: "b3" } },
+      { n: "Use the extra man to escape the press", to: { ball: [7.2, 16], r1: [13, 14] }, d: 0.9, carry: { ball: "n1" } },
+      { n: "Always an outlet — keep it moving", to: { ball: [12.8, 19], r1: [14, 15] }, d: 0.8, carry: { ball: "b1" } },
+      { n: "Turned over — the yellows switch sides instantly", to: { ball: [17, 13], r2: [18, 13], n1: [9, 19], n2: [31, 18] }, d: 0.8, carry: { ball: null } },
+    ]
+  ),
+
+  /* -------------------------------------------------- passing (staples) */
+  mkBank(
+    { id: "pass8", name: "Four corners", skill: "passing", level: 1, ages: "U9–U11", pitch: "grid",
+      players: "4 to 8", kit: "4 cones, 1 ball",
+      setup: "A player on each corner of a 12x12 square. Pass along an edge, then diagonally through the middle, and follow every pass to the corner you passed to.",
+      points: ["Follow every pass — nobody stands still", "Open your body so you can see both corners before it arrives", "Pass to the far foot, the one away from pressure", "Call the name before you play it"],
+      easier: "Pass round the outside only, unlimited touches, walking pace.",
+      harder: "Two touch, then one. Add a second ball going the opposite way round." },
+    { a: pl(14, 9, CB, "1"), b: pl(26, 9, CB, "2"), c: pl(26, 21, CB, "3"), d: pl(14, 21, CB, "4"),
+      ball: bl(15.2, 10), c1: cn(12, 7), c2: cn(28, 7), c3: cn(28, 23), c4: cn(12, 23) },
+    [
+      { n: "One on each corner, follow every pass", carry: { ball: "a" } },
+      { n: "Along the edge, then follow it", to: { ball: [24.8, 10], a: [19, 9] }, d: 0.9, carry: { ball: "b" } },
+      { n: "Now diagonally through the middle", to: { ball: [15.2, 22], b: [25, 15], a: [26, 9] }, d: 1, carry: { ball: "d" } },
+      { n: "Along the bottom and follow again", to: { ball: [24.8, 22], d: [19, 21] }, d: 0.9, carry: { ball: "c" } },
+    ]
+  ),
+  mkBank(
+    { id: "pass9", name: "5v2 rondo", skill: "passing", level: 3, ages: "U12+", pitch: "grid",
+      players: "7", kit: "5 cones, 1 ball, 2 bibs",
+      setup: "Five players round a 10x10 square, two defenders inside, and a cone in the middle. Keep the ball; hitting the middle cone scores double. Whoever loses it goes in.",
+      points: ["Always offer two options — one either side of the player on the ball", "Scan before it arrives so your first touch already has a direction", "Through the middle beats going round the outside", "Defenders press as a pair and protect the cone between them"],
+      easier: "Go 5v1, or allow unlimited touches until they can string ten together.",
+      harder: "Two touch, then one touch. Shrink the square. Add a second target cone." },
+    { t: pl(20, 8, CB, "1"), r: pl(29, 13, CB, "2"), br: pl(27, 22, CB, "3"),
+      bl: pl(13, 22, CB, "4"), l: pl(11, 13, CB, "5"),
+      d1: pl(18, 14, CR, ""), d2: pl(23, 17, CR, ""), ball: bl(21.2, 9),
+      c0: cn(20, 15), c1: cn(12, 9), c2: cn(28, 9), c3: cn(28, 21), c4: cn(12, 21) },
+    [
+      { n: "Five out, two in, cone in the middle", carry: { ball: "t" } },
+      { n: "Two options either side — always a triangle", to: { ball: [12.2, 14], d1: [16, 13] }, d: 0.8, carry: { ball: "l" } },
+      { n: "Move it before they get set", to: { ball: [14.2, 23], d1: [14, 18], d2: [20, 19] }, d: 0.8, carry: { ball: "bl" } },
+      { n: "Through the middle beats going round", to: { ball: [28, 14], d1: [17, 17], d2: [22, 16] }, d: 0.9, carry: { ball: "r" } },
+    ]
+  ),
+
+  /* ------------------------------------------------ first touch (more) */
+  mkBank(
+    { id: "touch5", name: "Keep-ups and catch", skill: "firsttouch", level: 1, ages: "U6–U8", pitch: "grid",
+      players: "Any, one ball each", kit: "1 ball per player",
+      setup: "Everyone in their own space. Drop the ball from your hands, one touch, then catch it. Build to two touches, then three. A five-minute filler that works every single week.",
+      points: ["Drop it, don't throw it up", "Laces flat, toe pointed slightly up", "Little touches, keep it below your waist", "Count out loud — beat your own record, not anybody else's"],
+      easier: "Bounce it once between touches, or use hands to catch after every touch.",
+      harder: "No bounce, then alternate feet, then add a thigh." },
+    { p1: pl(10, 10, CB, "1"), b1: bl(10, 12), p2: pl(20, 10, CB, "2"), b2: bl(20, 12),
+      p3: pl(30, 10, CB, "3"), b3: bl(30, 12), p4: pl(20, 22, CB, "4"), b4: bl(20, 24) },
+    [
+      { n: "A ball each, plenty of space", carry: { b1: "p1", b2: "p2", b3: "p3", b4: "p4" } },
+      { n: "Drop it from your hands onto your laces", to: { b1: [10, 11], b2: [20, 11], b3: [30, 11], b4: [20, 23] }, d: 0.6 },
+      { n: "Keep it below your waist, little touches", to: { b1: [10, 12], b2: [20, 12], b3: [30, 12], b4: [20, 24] }, d: 0.6 },
+      { n: "Catch it — then beat your own record", to: { b1: [10, 11], b2: [20, 11], b3: [30, 11], b4: [20, 23] }, d: 0.6 },
+    ]
+  ),
+  mkBank(
+    { id: "touch6", name: "Chest and thigh", skill: "firsttouch", level: 2, ages: "U9–U11", pitch: "grid",
+      players: "Pairs", kit: "2 cones, 1 ball per pair",
+      setup: "One player serves with their hands at chest or thigh height. The receiver cushions it down, sets it, and plays it back. Ten each, then swap.",
+      points: ["Get your body behind the ball early and let it come to you", "Cushion it — relax on contact, don't stab at it", "Bring it down into the space in front of you, not onto your toes", "Second touch is already going somewhere"],
+      easier: "Serve gently underarm to the thigh only, and let them use two touches to settle it.",
+      harder: "Higher service, one touch to control and one to return, then add a defender behind." },
+    { s: pl(14, 15, CB, "S"), r: pl(26, 15, CB, "R"), ball: bl(15.2, 16),
+      g1: gt(36, 15, 90), c1: cn(26, 8), c2: cn(26, 22) },
+    [
+      { n: "Served by hand at chest height", carry: { ball: "s" } },
+      { n: "Body behind it — let it come to you", to: { ball: [24.8, 14] }, d: 0.9, carry: { ball: "r" } },
+      { n: "Cushion it down into the space in front", to: { r: [28, 12], ball: [29.2, 13.4] }, d: 0.8 },
+      { n: "Second touch takes you away", to: { r: [34, 15], ball: [35.2, 16] }, d: 0.8 },
+    ]
+  ),
+  mkBank(
+    { id: "touch7", name: "Receive on the back foot", skill: "firsttouch", level: 3, ages: "U12+", pitch: "grid",
+      players: "3 or more", kit: "3 cones, bibs, balls",
+      setup: "A triangle with a marked player in the middle. The ball comes from one side and has to go out the other — which only works if the first touch is taken with the far foot.",
+      points: ["Open your hips before it arrives, don't square up to the passer", "Receive with the foot furthest from the defender", "One touch should take you out of the pressure and into your next pass", "If you can't turn, set it back and go again — no forcing it"],
+      easier: "Defender starts three metres away and cannot tackle, only shadow.",
+      harder: "Live defender, two touches, and the exit pass must be first time." },
+    { s: pl(10, 20, CB, "1"), r: pl(22, 14, CB, "2"), t: pl(34, 20, CB, "3"), d: pl(22, 10, CR, ""),
+      ball: bl(11.2, 21), c1: cn(22, 4) },
+    [
+      { n: "Ball in from one side, out the other", carry: { ball: "s" } },
+      { n: "Open your hips before it arrives", to: { ball: [20.8, 15], d: [22, 11.5] }, d: 0.9, carry: { ball: "r" } },
+      { n: "Far foot takes you away from the marker", to: { r: [25, 16], ball: [26.2, 17], d: [23, 13] }, d: 0.8 },
+      { n: "Now you can see it all — play forward", to: { ball: [32.8, 21] }, d: 0.8, carry: { ball: "t" } },
+    ]
+  ),
+
+  /* --------------------------------------------------- dribbling (more) */
+  mkBank(
+    { id: "drib8", name: "Cone slalom", skill: "dribbling", level: 1, ages: "U6–U8", pitch: "grid",
+      players: "Any", kit: "5 cones per line, 1 ball per player",
+      setup: "Five cones in a line about four metres apart. Weave through them and accelerate out of the last one. Run two or three lines side by side so nobody is queuing.",
+      points: ["Small touches — the ball never gets more than a step away", "Inside foot one way, outside foot the other", "Head up between the cones, not glued to the ball", "Accelerate out of the last cone, that's the bit that matters"],
+      easier: "Wider gaps between cones and no timing.",
+      harder: "Tighten the gaps, weaker foot only, then race a partner on the next line." },
+    { p1: pl(20, 27, CB, "1"), ball: bl(21.2, 28),
+      c1: cn(20, 23), c2: cn(20, 19), c3: cn(20, 15), c4: cn(20, 11), c5: cn(20, 7) },
+    [
+      { n: "Five cones, weave through them", carry: { ball: "p1" } },
+      { n: "Small touches — ball within a step", to: { p1: [17, 21], ball: [18.2, 22] }, d: 0.9 },
+      { n: "Inside foot one way, outside the other", to: { p1: [23, 17], ball: [24.2, 18] }, d: 0.9 },
+      { n: "Head up between the cones", to: { p1: [17, 13], ball: [18.2, 14] }, d: 0.9 },
+      { n: "Accelerate out of the last one", to: { p1: [20, 4], ball: [21.2, 5] }, d: 0.8 },
+    ]
+  ),
+  mkBank(
+    { id: "drib9", name: "1v1 ladder", skill: "dribbling", level: 2, ages: "U9–U11", pitch: "grid",
+      players: "6 or more", kit: "Small goals or cone gates, bibs, balls",
+      setup: "Three small 1v1 pitches side by side. Winner moves up a pitch, loser moves down. Ninety seconds a game, then everybody shifts and plays somebody new.",
+      points: ["Attack the defender — waiting on the ball gives them time to set", "First touch out of your feet so you can go at them", "Change of pace, not just tricks", "Losing is fine, standing still isn't"],
+      easier: "Bigger pitches, and the defender must stay on their feet.",
+      harder: "Smaller pitches, add a time limit per attack, or make it a two-goal pitch so both can score." },
+    { a: pl(20, 18, CB, "A"), d: pl(20, 12, CR, "D"), ball: bl(21.2, 19),
+      g1: gl(20, 3, 1), g2: gl(20, 27, 1), c1: cn(10, 6), c2: cn(30, 6), c3: cn(10, 24), c4: cn(30, 24) },
+    [
+      { n: "One goal each, ninety seconds", carry: { ball: "a" } },
+      { n: "Attack them — don't wait to be closed down", to: { a: [16, 16], ball: [17.2, 17], d: [18, 13] }, d: 0.9 },
+      { n: "Change direction and change pace", to: { a: [24, 10], ball: [25.2, 11], d: [19, 13] }, d: 0.9 },
+      { n: "Score and move up a pitch", to: { ball: [20, 4.5], a: [22, 8] }, d: 0.7, carry: { ball: null } },
+    ]
+  ),
+
+  /* ---------------------------------------------------- shooting (more) */
+  mkBank(
+    { id: "shot8", name: "Volleys from a throw", skill: "shooting", level: 2, ages: "U9–U11", pitch: "third",
+      players: "3 or more", kit: "Balls, one goal",
+      setup: "A server throws the ball in at thigh or waist height from the side. The striker volleys it first time. Ten each, then swap.",
+      points: ["Get side on and set your feet before it arrives", "Knee over the ball and ankle locked — that's what keeps it down", "Strike through the middle of the ball, not underneath it", "Accuracy first, power second — a volley on target is worth two off it"],
+      easier: "Let it bounce once before striking, and serve from closer in.",
+      harder: "Higher service, weaker foot, then serve from behind so it has to be judged over the shoulder." },
+    { s: pl(44, 14, CB, "S"), q: pl(34, 14, CB, "9"), k: pl(34, 5, CY, "GK"),
+      ball: bl(45.2, 15), goal: gl(34, 1.2, 2), c1: cn(34, 20) },
+    [
+      { n: "Served by hand from the side", carry: { ball: "s" } },
+      { n: "Set your feet, get side on", to: { ball: [35.4, 13.4], q: [34.2, 13] }, d: 0.9, carry: { ball: "q" } },
+      { n: "Knee over it, ankle locked — keep it down", to: { ball: [34, 3.5], q: [34, 11] }, d: 0.6, carry: { ball: null } },
+    ]
+  ),
+  mkBank(
+    { id: "shot9", name: "Lay-off and strike", skill: "shooting", level: 3, ages: "U12+", pitch: "third",
+      players: "4 or more", kit: "Balls, bibs, one goal",
+      setup: "The ball goes into a forward with their back to goal, who sets it back into the path of a midfielder arriving at speed to strike it first time from the edge of the area.",
+      points: ["Set-back is one touch, and it goes into the runner's path not their feet", "Runner arrives at speed — don't stand and wait for it", "Head still, strike through the middle of the ball, follow through low", "If it's not on, the forward keeps it and the runner goes again"],
+      easier: "Forward takes a touch, midfielder takes a touch to set before shooting.",
+      harder: "Add a defender pressing the striker, and make it first time only." },
+    { s: pl(50, 24, CB, "S"), f: pl(34, 16, CB, "9"), m: pl(34, 30, CB, "8"), k: pl(34, 5, CY, "GK"),
+      ball: bl(51.2, 25), goal: gl(34, 1.2, 2), c1: cn(24, 22), c2: cn(44, 22) },
+    [
+      { n: "Forward with their back to goal, runner behind", carry: { ball: "s" } },
+      { n: "Ball into the forward's feet", to: { ball: [35.2, 17] }, d: 0.9, carry: { ball: "f" } },
+      { n: "Set it back into the runner's path", to: { ball: [34.4, 25], m: [34, 26] }, d: 0.8, carry: { ball: "m" } },
+      { n: "First time, through the middle of the ball", to: { ball: [34, 3.5], m: [34, 20] }, d: 0.6, carry: { ball: null } },
+    ]
+  ),
+
+  /* --------------------------------------------------- defending (more) */
+  mkBank(
+    { id: "def8", name: "Defending crosses", skill: "defending", level: 3, ages: "U12+", pitch: "third",
+      players: "5 or more", kit: "Balls, bibs, one goal",
+      setup: "A winger delivers from wide with an attacker and two defenders in the box. The defenders have to attack the ball first and clear it away from danger, not just block.",
+      points: ["Near-post defender attacks the ball, second defender covers behind", "Get in front of your attacker before the ball is struck", "Head it high, wide and long — away from the middle", "Keeper calls it: if you hear them, get out of the way"],
+      easier: "Serve the cross by hand at a comfortable height and take the attacker out.",
+      harder: "Two attackers against two defenders, live crosses from both sides." },
+    { w: pl(56, 12, CB, "7"), a: pl(36, 8, CB, "9"), d1: pl(33, 9, CR, "1"), d2: pl(28, 12, CR, "2"),
+      k: pl(34, 5, CY, "GK"), ball: bl(57.2, 13), goal: gl(34, 1.2, 2) },
+    [
+      { n: "Cross coming in, two defenders in the box", carry: { ball: "w" } },
+      { n: "Get in front before the ball is struck", to: { ball: [41, 7], a: [38, 7.5], d1: [37, 8.5], d2: [31, 9] }, d: 0.9, carry: { ball: null } },
+      { n: "Attack it — high, wide and long", to: { ball: [24, 15], d1: [35, 9], a: [37, 9], d2: [30, 11] }, d: 0.8 },
+    ]
+  ),
+  mkBank(
+    { id: "def9", name: "Squeeze and drop", skill: "defending", level: 3, ages: "U12+", pitch: "half",
+      players: "6 or more", kit: "Bibs, balls, one goal",
+      setup: "A back three against three attackers who move the ball across the pitch. The defenders don't tackle — they practise moving as a unit: step up together when the ball goes back, drop and tuck in when it can come forward.",
+      points: ["Move as the ball moves, not as the player moves", "Ball goes backwards, the whole line steps up together", "Ball side defender presses, the far side tucks inside to cover", "When they can play forward, drop — never get caught square and flat"],
+      easier: "Walk it through with the coach calling step, shift and drop out loud.",
+      harder: "Let the attackers play forward whenever they see it, so the line is punished for being late." },
+    { d1: pl(22, 30, CR, "1"), d2: pl(34, 30, CR, "2"), d3: pl(46, 30, CR, "3"),
+      a1: pl(20, 42, CB, "1"), a2: pl(34, 44, CB, "2"), a3: pl(48, 42, CB, "3"),
+      k: pl(34, 6, CY, "GK"), ball: bl(21.2, 43), goal: gl(34, 1.5, 2),
+      c1: cn(10, 34), c2: cn(58, 34) },
+    [
+      { n: "Back three against three, no tackling", carry: { ball: "a1" } },
+      { n: "Ball goes back — the line steps up together", to: { ball: [32.8, 44], d1: [22, 26], d2: [34, 26], d3: [46, 26] }, d: 1, carry: { ball: "a2" } },
+      { n: "Shift as one — ball side presses, far side tucks in", to: { ball: [46.8, 43], d1: [26, 27], d2: [38, 27], d3: [50, 27] }, d: 1, carry: { ball: "a3" } },
+      { n: "They can play forward — drop and stay compact", to: { a3: [48, 38], ball: [49.2, 39], d1: [28, 31], d2: [40, 31], d3: [52, 31] }, d: 0.9 },
+    ]
+  ),
+
+  /* ------------------------------------------------- small-sided (more) */
+  mkBank(
+    { id: "ssg5", name: "World Cup", skill: "ssg", level: 1, ages: "U9–U11", pitch: "grid",
+      players: "6 or more", kit: "1 goal, bibs, balls",
+      setup: "Pairs against pairs, one goal and a keeper. The coach feeds a ball in, everyone plays, and the pair that scores stays on. Concede and you're out until the next round.",
+      points: ["Everyone is playing — no queues, no standing about", "Shoot early, you might only get one chance", "Second pair defends the rebound, the keeper won't hold everything", "Loud and quick — this one is meant to be fun"],
+      easier: "Feed the ball in nearer the goal, and let a pair stay on after two goals rather than one.",
+      harder: "Two-touch limit, or a goal only counts if both players in the pair have touched it." },
+    { b1: pl(14, 18, CB, "A"), b2: pl(18, 21, CB, "A"),
+      r1: pl(26, 18, CR, "B"), r2: pl(22, 21, CR, "B"),
+      p1: pl(20, 26, "#BF5AF2", "C"), p2: pl(16, 25, "#BF5AF2", "C"),
+      k: pl(20, 7, CY, "GK"), ball: bl(20, 15), goal: gl(20, 2.5, 1.6) },
+    [
+      { n: "Pairs against pairs, ball fed in by the coach" },
+      { n: "Whoever gets there first is attacking", to: { ball: [15.2, 17], b1: [14, 16], r1: [24, 16] }, d: 0.8, carry: { ball: "b1" } },
+      { n: "Shoot early — you might get one chance", to: { ball: [20, 4], b1: [17, 12], r2: [21, 15] }, d: 0.7, carry: { ball: null } },
+      { n: "Score and stay on, concede and you're out", to: { b1: [16, 18], r1: [26, 18], p1: [20, 15] }, d: 0.9 },
+    ]
+  ),
+  mkBank(
+    { id: "ssg6", name: "6v3 keep ball", skill: "ssg", level: 2, ages: "U12+", pitch: "grid",
+      players: "9", kit: "4 cones, bibs, balls",
+      setup: "Six players keeping the ball in a 16x14 area against three defenders. Big overload, so there is no excuse for losing it — the point is speed of thought, not survival.",
+      points: ["Two touches: one to receive, one to pass", "Support on an angle, never in the passing lane behind a defender", "Play through the middle when it opens rather than round the outside", "Defenders press in threes — one on the ball, two cutting the options"],
+      easier: "Add a seventh attacker or take a defender out until they can string fifteen together.",
+      harder: "One touch, shrink the area, or count how many passes before the ball is lost." },
+    { o1: pl(20, 7, CB, "1"), o2: pl(31, 11, CB, "2"), o3: pl(31, 21, CB, "3"),
+      o4: pl(20, 25, CB, "4"), o5: pl(9, 21, CB, "5"), o6: pl(9, 11, CB, "6"),
+      d1: pl(17, 14, CR, ""), d2: pl(24, 14, CR, ""), d3: pl(20, 20, CR, ""), ball: bl(21.2, 8),
+      c1: cn(12, 8), c2: cn(28, 8), c3: cn(28, 24), c4: cn(12, 24) },
+    [
+      { n: "Six against three — no excuse for losing it", carry: { ball: "o1" } },
+      { n: "One touch to receive, one to pass", to: { ball: [29.8, 12], d1: [20, 13] }, d: 0.8, carry: { ball: "o2" } },
+      { n: "Through the middle when it opens", to: { ball: [21.2, 26], d2: [25, 17], d3: [21, 18] }, d: 0.9, carry: { ball: "o4" } },
+      { n: "Support on an angle, never behind a defender", to: { ball: [10.2, 12], d3: [18, 19], d1: [17, 16] }, d: 0.9, carry: { ball: "o6" } },
+    ]
+  ),
+  mkBank(
+    { id: "ssg7", name: "End to end", skill: "ssg", level: 3, ages: "U12+", pitch: "half",
+      players: "6 plus keepers", kit: "2 goals, bibs, balls",
+      setup: "Three against three with a goal and a keeper at each end. Every turnover is a counter-attack — the moment you lose it, the other team is going the other way.",
+      points: ["Attack quickly — the best moment is the second after you win it", "Somebody always stays behind the ball", "Lose it and sprint back before you complain about it", "Shoot early, don't walk it in"],
+      easier: "Add a neutral who plays for whoever has the ball, and allow a restart after every goal.",
+      harder: "Three passes maximum before the shot, or make a goal from a counter worth double." },
+    { b1: pl(34, 30, CB, "1"), b2: pl(22, 24, CB, "2"), b3: pl(46, 24, CB, "3"),
+      r1: pl(34, 20, CR, "1"), r2: pl(24, 34, CR, "2"), r3: pl(44, 34, CR, "3"),
+      k1: pl(34, 6, CY, "GK"), k2: pl(34, 46, CY, "GK"), ball: bl(35.2, 31),
+      g1: gl(34, 1.5, 2), g2: gl(34, 51, 2) },
+    [
+      { n: "Three against three, a goal at each end", carry: { ball: "b1" } },
+      { n: "Attack quickly — this is the moment", to: { ball: [23.2, 25], r1: [30, 24] }, d: 0.9, carry: { ball: "b2" } },
+      { n: "Shoot early, don't walk it in", to: { ball: [34, 8], b3: [40, 16], b2: [26, 20] }, d: 0.7, carry: { ball: null } },
+      { n: "Turned over — everyone sprints back", to: { ball: [27, 22], r2: [26, 21], b2: [25, 24] }, d: 0.9, carry: { ball: "r2" } },
+      { n: "The counter starts instantly", to: { ball: [34, 49], r2: [30, 34], b1: [33, 30] }, d: 0.9, carry: { ball: null } },
     ]
   ),
 ];
@@ -1825,7 +2423,7 @@ function DrillDesigner() {
             <section>
               <h3>Where to start</h3>
               <ul>
-                <li>The folder icon has a <b>Bank</b> tab: ready-made drills filtered by skill, difficulty and age group, each with a setup, coaching points and how to make it harder or easier.</li>
+                <li>The folder icon has a <b>Library</b> tab: ready-made drills filtered by skill, difficulty and age group, each with a setup, coaching points and how to make it harder or easier.</li>
                 <li>Open one and it becomes yours — change the numbers, the shape or the pitch, and save it alongside your own.</li>
               </ul>
             </section>
@@ -1854,11 +2452,11 @@ function DrillDesigner() {
       )}
 
       {sheet === "library" && (
-        <Sheet title={tab === "drills" ? "My drills" : tab === "bank" ? "Drill bank" : "Sessions"} onClose={() => setSheet(null)}
+        <Sheet title={tab === "drills" ? "My drills" : tab === "bank" ? "Library" : "Sessions"} onClose={() => setSheet(null)}
           head={
             <div className="tabs">
-              <button className={"seg" + (tab === "drills" ? " on" : "")} onClick={() => setTab("drills")}>Mine</button>
-              <button className={"seg" + (tab === "bank" ? " on" : "")} onClick={() => setTab("bank")}>Bank</button>
+              <button className={"seg" + (tab === "drills" ? " on" : "")} onClick={() => setTab("drills")}>My drills</button>
+              <button className={"seg" + (tab === "bank" ? " on" : "")} onClick={() => setTab("bank")}>Library</button>
               <button className={"seg" + (tab === "sessions" ? " on" : "")} onClick={() => setTab("sessions")}>Sessions</button>
             </div>
           }>
@@ -2023,7 +2621,7 @@ function DrillDesigner() {
               ))}
               {BANK.map((d) => (
                 <Row key={d.id} label={d.name}
-                  sub={`Bank · ${(LEVELS.find((l) => l.id === d.level) || {}).label} · ${d.ages}`}
+                  sub={`Library · ${(LEVELS.find((l) => l.id === d.level) || {}).label} · ${d.ages}`}
                   icon={<span className="lvl" style={{ background: LEVEL_COLOR[d.level] }}>{d.level}</span>}
                   onClick={() => {
                     updateSession({ items: [...(editSession.items || []), { id: uid(), drillId: d.id, name: d.name, minutes: 10, note: d.setup }] });
@@ -2060,6 +2658,59 @@ function DrillDesigner() {
 }
 
 /* ------------------------------------------------------------ small ui */
+
+/* An animated rondo: five players, two in the middle, ball going round. */
+const RONDO = (() => {
+  const cx = 110, cy = 98, r = 62;
+  const pts = Array.from({ length: 5 }, (_, i) => {
+    const a = -Math.PI / 2 + (i * 2 * Math.PI) / 5;
+    return [+(cx + Math.cos(a) * r).toFixed(1), +(cy + Math.sin(a) * r).toFixed(1)];
+  });
+  const order = [0, 2, 4, 1, 3];
+  const path = order.map((i, n) => `${n ? "L" : "M"}${pts[i][0]},${pts[i][1]}`).join(" ") + " Z";
+  return { pts, path, cx, cy };
+})();
+
+function RondoMark() {
+  return (
+    <svg className="lockmark" viewBox="0 0 220 196" aria-hidden="true">
+      <defs>
+        <radialGradient id="rg" cx="50%" cy="45%" r="60%">
+          <stop offset="0%" stopColor="#5FBF7F" stopOpacity="0.35" />
+          <stop offset="100%" stopColor="#5FBF7F" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <circle cx={RONDO.cx} cy={RONDO.cy} r="92" fill="url(#rg)" />
+      <circle cx={RONDO.cx} cy={RONDO.cy} r="74" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
+      <circle cx={RONDO.cx} cy={RONDO.cy} r="30" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+
+      <path d={RONDO.path} fill="none" stroke="rgba(255,255,255,0.28)" strokeWidth="1.6" strokeDasharray="5 9" strokeLinecap="round">
+        <animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1.4s" repeatCount="indefinite" />
+      </path>
+
+      {[[96, 96], [126, 104]].map(([x, y], i) => (
+        <circle key={i} cx={x} cy={y} r="8" fill="#FF3B30" opacity="0.9">
+          <animateTransform attributeName="transform" type="translate"
+            values={i ? "0 0; -7 5; 4 -6; 0 0" : "0 0; 6 -5; -5 6; 0 0"}
+            dur="4.5s" repeatCount="indefinite" />
+        </circle>
+      ))}
+
+      {RONDO.pts.map(([x, y], i) => (
+        <g key={i}>
+          <circle cx={x} cy={y} r="10.5" fill="#0A84FF" />
+          <circle cx={x} cy={y} r="10.5" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="1.6" />
+        </g>
+      ))}
+
+      <circle r="5" fill="#fff" stroke="#0E3524" strokeWidth="1">
+        <animateMotion dur="5s" repeatCount="indefinite" path={RONDO.path} calcMode="linear"
+          keyPoints="0;0.2;0.2;0.4;0.4;0.6;0.6;0.8;0.8;1"
+          keyTimes="0;0.13;0.2;0.33;0.4;0.53;0.6;0.73;0.8;1" />
+      </circle>
+    </svg>
+  );
+}
 
 function Gate({ onUnlock, admin, inline }) {
   const [code, setCode] = useState("");
@@ -2098,8 +2749,8 @@ function Gate({ onUnlock, admin, inline }) {
   if (inline) {
     return (
       <div className="lockcard">
-        <h3>The drill bank is locked</h3>
-        <p>Sixteen ready-made drills across passing, dribbling, shooting and defending, each with coaching points and progressions.</p>
+        <h3>The drill library is locked</h3>
+        <p>Fifty ready-made drills across six categories, each with coaching points and progressions.</p>
         {form}
       </div>
     );
@@ -2107,19 +2758,13 @@ function Gate({ onUnlock, admin, inline }) {
 
   return (
     <div className="lockscreen">
-      <div className="gatecard">
-        <svg width="66" height="66" viewBox="0 0 66 66" aria-hidden="true">
-          <rect x="1" y="1" width="64" height="64" rx="15" fill="#4E9E63" />
-          <rect x="8" y="8" width="50" height="50" rx="5" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2" />
-          <line x1="8" y1="33" x2="58" y2="33" stroke="rgba(255,255,255,0.6)" strokeWidth="2" />
-          <line x1="22" y1="46" x2="42" y2="26" stroke="#fff" strokeWidth="3.4" strokeDasharray="4 4" strokeLinecap="round" />
-          <polygon points="46,22 38,25 43,30" fill="#fff" />
-          <circle cx="22" cy="46" r="5" fill="#fff" />
-          <circle cx="22" cy="46" r="1.8" fill="#1C1C1E" />
-        </svg>
-        <h1>Drill Designer</h1>
-        <p>Enter your access code to open the app. Ask your club or coach if you don't have one.</p>
-        {form}
+      <div className="lockbg" />
+      <div className="lockinner">
+        <RondoMark />
+        <h1 className="wordmark">Rondo</h1>
+        <p className="tagline">Design, simulate and share football drills</p>
+        <div className={"gatecard" + (err ? " shake" : "")}>{form}</div>
+        <p className="lockfoot">Ask your club for an access code</p>
       </div>
 
       {admin && (
@@ -2218,8 +2863,15 @@ input { font: inherit; }
 .chipbtn { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; background: rgba(255,255,255,0.9); color: #1C1C1E; box-shadow: 0 2px 10px rgba(0,0,0,0.22); backdrop-filter: blur(12px); }
 .chipbtn.on { background: #007AFF; color: #fff; }
 
-.pitchpick { position: absolute; top: 12px; left: 12px; display: flex; padding: 2px; background: rgba(255,255,255,0.86); border-radius: 11px; backdrop-filter: blur(12px); box-shadow: 0 2px 10px rgba(0,0,0,0.2); max-width: 62%; overflow-x: auto; scrollbar-width: none; }
-.pitchpick::-webkit-scrollbar { display: none; }
+.pitchpick {
+  position: absolute; top: 12px; left: 12px; right: 60px; display: flex; padding: 2px;
+  background: rgba(255,255,255,0.86); border-radius: 11px; backdrop-filter: blur(12px);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+.pitchpick .seg {
+  flex: 1 1 0; min-width: 0; text-align: center; padding: 5px 4px; font-size: 11.5px;
+  overflow: hidden; text-overflow: ellipsis;
+}
 .seg { padding: 5px 10px; border-radius: 9px; font-size: 12px; font-weight: 500; color: #3C3C43; white-space: nowrap; }
 .seg.on { background: #fff; color: #007AFF; font-weight: 600; box-shadow: 0 1px 4px rgba(0,0,0,0.16); }
 .segs { display: flex; background: rgba(118,118,128,0.12); border-radius: 9px; padding: 2px; }
@@ -2303,23 +2955,64 @@ input { font: inherit; }
 
 /* NB: .gate is already taken by the palette's gate icon — keep this distinct. */
 .lockscreen {
-  position: absolute; inset: 0; background: #0E3524; color: #fff; z-index: 60;
+  position: absolute; inset: 0; z-index: 60; color: #fff; overflow-y: auto;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 18px; padding: 24px; overflow-y: auto;
+  gap: 18px; padding: 28px 24px;
+  background: radial-gradient(120% 80% at 50% 0%, #0E3524 0%, #071B12 68%, #04100A 100%);
 }
-.gatecard { display: flex; flex-direction: column; align-items: center; gap: 10px; max-width: 320px; width: 100%; }
-.gatecard h1 { margin: 4px 0 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
-.gatecard p { margin: 0; font-size: 14px; line-height: 1.45; color: rgba(255,255,255,0.62); text-align: center; }
-.gateform { display: flex; gap: 8px; width: 100%; margin-top: 8px; }
+.lockbg {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(60% 40% at 50% 22%, rgba(48,196,99,0.18) 0%, rgba(48,196,99,0) 70%),
+    radial-gradient(40% 30% at 85% 85%, rgba(10,132,255,0.14) 0%, rgba(10,132,255,0) 70%);
+  animation: breathe 9s ease-in-out infinite;
+}
+@keyframes breathe { 0%,100% { opacity: 0.75 } 50% { opacity: 1 } }
+.lockinner {
+  position: relative; z-index: 1; width: 100%; max-width: 340px;
+  display: flex; flex-direction: column; align-items: center;
+}
+.lockmark { width: 190px; height: 170px; display: block; animation: markin .7s cubic-bezier(0.22,1,0.36,1) both; }
+@keyframes markin { from { opacity: 0; transform: scale(0.92) } to { opacity: 1; transform: none } }
+.wordmark {
+  margin: 2px 0 0; font-size: 46px; font-weight: 700; letter-spacing: -2px; line-height: 1;
+  background: linear-gradient(180deg, #FFFFFF 30%, #B8E6C7 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: risein .6s cubic-bezier(0.22,1,0.36,1) .1s both;
+}
+.tagline {
+  margin: 9px 0 0; font-size: 14px; line-height: 1.4; text-align: center;
+  color: rgba(255,255,255,0.58); animation: risein .6s cubic-bezier(0.22,1,0.36,1) .18s both;
+}
+@keyframes risein { from { opacity: 0; transform: translateY(12px) } to { opacity: 1; transform: none } }
+.lockfoot { margin: 14px 0 0; font-size: 12.5px; color: rgba(255,255,255,0.4); animation: risein .6s ease .34s both; }
+.gatecard {
+  width: 100%; margin-top: 22px; padding: 14px; border-radius: 20px;
+  background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14);
+  backdrop-filter: blur(14px); box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+  animation: risein .6s cubic-bezier(0.22,1,0.36,1) .26s both;
+}
+.gatecard.shake { animation: shake .4s ease; }
+@keyframes shake { 10%,90% { transform: translateX(-2px) } 30%,70% { transform: translateX(4px) } 50% { transform: translateX(-6px) } }
+.gateform { display: flex; gap: 8px; width: 100%; }
 .gateinput {
-  flex: 1; min-width: 0; border: none; outline: none; border-radius: 11px; padding: 12px 14px;
-  font-size: 16px; background: rgba(255,255,255,0.12); color: #fff;
+  flex: 1; min-width: 0; border: 1px solid rgba(255,255,255,0.1); outline: none; border-radius: 13px;
+  padding: 13px 15px; font-size: 16px; background: rgba(0,0,0,0.22); color: #fff; transition: border-color .18s, box-shadow .18s;
 }
-.gateinput::placeholder { color: rgba(255,255,255,0.4); }
-.gatebtn { background: #0A84FF; color: #fff; border-radius: 11px; padding: 12px 18px; font-size: 15px; font-weight: 600; flex: 0 0 auto; }
-.gatebtn:disabled { opacity: 0.4; }
-.gateerr { margin: 2px 0 0; font-size: 13px; color: #FF9F9F; text-align: center; }
-.adminbox { background: rgba(255,255,255,0.08); border-radius: 14px; padding: 16px; max-width: 400px; width: 100%; }
+.gateinput::placeholder { color: rgba(255,255,255,0.38); }
+.gateinput:focus { border-color: rgba(10,132,255,0.7); box-shadow: 0 0 0 4px rgba(10,132,255,0.18); }
+.gatebtn {
+  background: linear-gradient(180deg, #2E97FF, #0A84FF); color: #fff; border-radius: 13px;
+  padding: 13px 20px; font-size: 15px; font-weight: 600; flex: 0 0 auto;
+  box-shadow: 0 6px 18px rgba(10,132,255,0.4); transition: transform .12s, opacity .18s;
+}
+.gatebtn:active { transform: scale(0.95); }
+.gatebtn:disabled { opacity: 0.35; box-shadow: none; }
+.gateerr { margin: 10px 2px 2px; font-size: 13px; color: #FF9F9F; text-align: center; }
+.adminbox {
+  position: relative; z-index: 1; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 16px; padding: 16px; max-width: 400px; width: 100%; backdrop-filter: blur(10px);
+}
 .adminbox h3 { margin: 0 0 6px; font-size: 15px; font-weight: 700; }
 .adminbox p { margin: 0; font-size: 12.5px; line-height: 1.45; color: rgba(255,255,255,0.6); }
 .adminbox b { color: #fff; }
@@ -2331,7 +3024,7 @@ input { font: inherit; }
 .lockcard { background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
 .lockcard h3 { margin: 0 0 6px; font-size: 15px; font-weight: 700; }
 .lockcard p { margin: 0; font-size: 13px; line-height: 1.45; color: #6C6C70; }
-.lockcard .gateinput { background: rgba(118,118,128,0.12); color: #1C1C1E; }
+.lockcard .gateinput { background: rgba(118,118,128,0.12); color: #1C1C1E; border-color: rgba(0,0,0,0.06); }
 .lockcard .gateinput::placeholder { color: #8E8E93; }
 .lockcard .gateerr { color: #FF3B30; text-align: left; }
 
