@@ -94,6 +94,7 @@
 
 
 
+
 /* ---------------------------------------------------- standalone runtime */
 const { useState, useRef, useEffect, useMemo, useCallback } = React;
 
@@ -2677,6 +2678,260 @@ BANK.forEach((d) => {
 });
 
 
+
+/* --------------------------------------------------- tactical movements */
+/* Built with the same machinery as the drills, so they animate, run in run
+   mode and can be opened in the designer. */
+
+const CONCEPTS = [
+  { id: "width", label: "Create width" },
+  { id: "depth", label: "Create depth" },
+  { id: "press", label: "High press" },
+  { id: "block", label: "Low block" },
+];
+
+const PATTERNS = [
+  /* ---------------------------------------------------------------- 7v7 */
+  mkBank(
+    { id: "pw7", name: "Create width", concept: "width", format: "7v7", pitch: "half",
+      summary: "From a 2-3-1. Everybody starts narrow and the pitch feels tiny. Push the wide players onto the touchline and suddenly there is room in the middle too.",
+      players: "7", kit: "Bibs, balls", ages: "U9–U11", skill: "ssg", level: 2,
+      setup: "Walk the shape first, then at jogging pace, then live against a defending seven.",
+      points: ["Wide players get both feet on the touchline before the ball is switched", "The wider they stand, the bigger the gaps in the middle", "Switch the ball early — width is no use if the pass never comes", "The far winger stays wide even when the ball is miles away"],
+      easier: "No opposition, just move the ball and hold the width.",
+      harder: "Add defenders and make a goal only count after the ball has been switched." },
+    { gk: pl(34, 50, CY, "GK"), lb: pl(22, 42, CB, "2"), rb: pl(46, 42, CB, "3"),
+      lm: pl(26, 30, CB, "4"), cm: pl(34, 32, CB, "6"), rm: pl(42, 30, CB, "7"), st: pl(34, 18, CB, "9"),
+      ball: bl(35.2, 33) },
+    [
+      { n: "Narrow — nobody is stretching them", carry: { ball: "cm" } },
+      { n: "Wide players get on the touchline", to: { lm: [8, 28], rm: [60, 28] }, d: 1.2 },
+      { n: "Now the pass out wide is on", to: { ball: [58.8, 29] }, d: 0.9, carry: { ball: "rm" } },
+      { n: "Width first, then attack the space", to: { rm: [60, 16], ball: [61.2, 17], st: [40, 12], lm: [10, 18] }, d: 1 },
+    ]
+  ),
+  mkBank(
+    { id: "pd7", name: "Create depth", concept: "depth", format: "7v7", pitch: "half",
+      summary: "The pitch has a length as well as a width. The striker drops in to drag a defender out, and the space behind them is where the game is won.",
+      players: "7", kit: "Bibs, balls", ages: "U9–U11", skill: "ssg", level: 2,
+      setup: "Start with the striker on the last defender. One movement short, one movement in behind.",
+      points: ["Come short first — you have to move them before you can go past them", "The pass in behind goes into the space, never at the feet", "Midfield pushes up as the striker drops, don't leave a gap", "One player short and one in behind means they cannot both be covered"],
+      easier: "No defenders, just rehearse the short movement and the run in behind.",
+      harder: "Live back line with an offside line, so the timing has to be right." },
+    { gk: pl(34, 50, CY, "GK"), lb: pl(22, 42, CB, "2"), rb: pl(46, 42, CB, "3"),
+      lm: pl(14, 30, CB, "4"), cm: pl(34, 32, CB, "6"), rm: pl(54, 30, CB, "7"), st: pl(34, 16, CB, "9"),
+      d1: pl(34, 12, CR, ""), ball: bl(35.2, 33) },
+    [
+      { n: "Striker on the last defender", carry: { ball: "cm" } },
+      { n: "Come short and drag them out", to: { st: [34, 24], d1: [34, 20] }, d: 1.1 },
+      { n: "Ball into feet — they follow", to: { ball: [35.2, 25.2] }, d: 0.8, carry: { ball: "st" } },
+      { n: "Set it back and spin in behind", to: { ball: [35.2, 33], st: [36, 12] }, d: 0.8, carry: { ball: "cm" } },
+      { n: "Now the space behind is there", to: { ball: [38, 8], st: [37, 8.6], cm: [34, 26] }, d: 1, carry: { ball: "st" } },
+    ]
+  ),
+  mkBank(
+    { id: "pp7", name: "High press", concept: "press", format: "7v7", pitch: "half",
+      summary: "Win it close to their goal and you barely have to attack. The striker shows them one way, everybody else squeezes up behind.",
+      players: "7 plus opposition", kit: "Bibs, balls", ages: "U9–U11", skill: "defending", level: 3,
+      setup: "Their keeper starts with it. Your seven press as a unit on the first pass.",
+      points: ["Striker curves the run to block one side off", "Press on the pass, not when the ball arrives", "Everybody squeezes up — if the back players stay deep the press has a hole in it", "Win it high and the goal is right in front of you"],
+      easier: "Walk it through, calling each trigger out loud.",
+      harder: "Live, and a goal within five seconds of winning it counts double." },
+    { rk: pl(34, 5, CR, "GK"), rd1: pl(22, 12, CR, ""), rd2: pl(46, 12, CR, ""),
+      st: pl(34, 20, CB, "9"), lm: pl(20, 26, CB, "4"), rm: pl(48, 26, CB, "7"), cm: pl(34, 32, CB, "6"),
+      lb: pl(24, 42, CB, "2"), rb: pl(44, 42, CB, "3"), ball: bl(35.2, 6) },
+    [
+      { n: "Their keeper has it — set the trap", carry: { ball: "rk" } },
+      { n: "Striker curves to block one side", to: { st: [40, 13] }, d: 0.9 },
+      { n: "Press on the pass, not the touch", to: { ball: [23.2, 13], lm: [24, 18] }, d: 0.9, carry: { ball: "rd1" } },
+      { n: "Everybody squeezes up behind", to: { lm: [23, 14], cm: [30, 22], lb: [26, 32], rb: [44, 32], rm: [44, 24] }, d: 0.9 },
+      { n: "Win it high — the goal is right there", to: { ball: [24, 15], lm: [24, 15.4] }, d: 0.7, carry: { ball: null } },
+    ]
+  ),
+  mkBank(
+    { id: "pb7", name: "Low block", concept: "block", format: "7v7", pitch: "half",
+      summary: "When they are better than you, get compact. Two tight lines in front of your own goal, force them wide, and keep one player up as an out ball.",
+      players: "7 plus opposition", kit: "Bibs, balls", ages: "U9–U11", skill: "defending", level: 3,
+      setup: "They start with the ball in your half. Your seven drop into two lines and hold the shape.",
+      points: ["Two lines, close together — no gap for them to play between", "Move across as one when the ball switches", "Force them wide and keep the middle locked", "Leave one player up so you have somewhere to go when you win it"],
+      easier: "Walk the shifting with the coach calling left and right.",
+      harder: "Live, and only a goal from a counter within eight seconds counts." },
+    { gk: pl(34, 5, CY, "GK"), lb: pl(24, 13, CB, "2"), rb: pl(44, 13, CB, "3"),
+      lm: pl(20, 21, CB, "4"), cm: pl(34, 21, CB, "6"), rm: pl(48, 21, CB, "7"), st: pl(34, 34, CB, "9"),
+      r1: pl(20, 34, CR, ""), r2: pl(48, 34, CR, ""), r3: pl(34, 42, CR, ""), ball: bl(35.2, 43) },
+    [
+      { n: "They have it, we get our shape", carry: { ball: "r3" } },
+      { n: "Two lines, tight together", to: { lb: [26, 14], rb: [42, 14], lm: [24, 20], cm: [34, 20], rm: [44, 20] }, d: 1 },
+      { n: "Ball goes wide — shift across as one", to: { ball: [21.2, 35], lb: [22, 14], rb: [38, 15], lm: [18, 21], cm: [30, 21], rm: [40, 22] }, d: 1, carry: { ball: "r1" } },
+      { n: "Force them wide, middle stays locked", to: { lm: [17, 24], lb: [20, 16] }, d: 0.8 },
+      { n: "Striker stays up as the out ball", to: { st: [36, 32] }, d: 0.8 },
+    ]
+  ),
+
+  /* ---------------------------------------------------------------- 9v9 */
+  mkBank(
+    { id: "pw9", name: "Create width", concept: "width", format: "9v9", pitch: "half",
+      summary: "From a 3-2-3. Wingers hold the touchline and the full backs push on behind them, so there are two players wide on each side.",
+      players: "9", kit: "Bibs, balls", ages: "U12–U13", skill: "ssg", level: 2,
+      setup: "Build from the back three and switch the ball from one side to the other without losing the width.",
+      points: ["Wingers stay on the touchline until the ball comes", "Full back overlaps outside once the winger has the ball", "Switch it early — one long diagonal beats five short passes", "Two wide on each side means they cannot defend both"],
+      easier: "No opposition, three switches in a row without losing the shape.",
+      harder: "Defenders in, and a goal only counts if the ball has been switched first." },
+    { gk: pl(34, 50, CY, "GK"), lb: pl(18, 43, CB, "2"), cb: pl(34, 44, CB, "5"), rb: pl(50, 43, CB, "3"),
+      cm1: pl(26, 31, CB, "6"), cm2: pl(42, 31, CB, "8"),
+      lw: pl(24, 18, CB, "11"), st: pl(34, 14, CB, "9"), rw: pl(44, 18, CB, "7"), ball: bl(35.2, 45) },
+    [
+      { n: "Narrow, and they are comfortable", carry: { ball: "cb" } },
+      { n: "Wingers get on the touchline", to: { lw: [8, 20], rw: [60, 20] }, d: 1.2 },
+      { n: "Switch it wide early", to: { ball: [58.8, 21] }, d: 1, carry: { ball: "rw" } },
+      { n: "Full back overlaps outside", to: { rb: [62, 30], cm2: [44, 26] }, d: 0.9 },
+      { n: "Two wide players — they cannot cover both", to: { ball: [62, 26], rb: [62, 25] }, d: 0.8, carry: { ball: "rb" } },
+    ]
+  ),
+  mkBank(
+    { id: "pd9", name: "Create depth", concept: "depth", format: "9v9", pitch: "half",
+      summary: "Stretch them the other way. The striker runs in behind while a midfielder drops into the space they leave — long and short at the same time.",
+      players: "9", kit: "Bibs, balls", ages: "U12–U13", skill: "ssg", level: 3,
+      setup: "Back three on the ball. One run in behind, one drop short, and the defenders have to choose.",
+      points: ["The run in behind goes first — it pins their back line", "The midfielder drops into the space that opens up", "If they drop, play short. If they step, play long", "Never both short: somebody must always threaten the space behind"],
+      easier: "Walk it, coach calling which pass is on.",
+      harder: "Live back line and an offside rule, so the timing matters." },
+    { gk: pl(34, 50, CY, "GK"), lb: pl(18, 43, CB, "2"), cb: pl(34, 44, CB, "5"), rb: pl(50, 43, CB, "3"),
+      cm1: pl(26, 31, CB, "6"), cm2: pl(42, 31, CB, "8"),
+      lw: pl(12, 20, CB, "11"), st: pl(34, 14, CB, "9"), rw: pl(56, 20, CB, "7"),
+      d1: pl(30, 10, CR, ""), d2: pl(40, 10, CR, ""), ball: bl(35.2, 45) },
+    [
+      { n: "Their back line is comfortable", carry: { ball: "cb" } },
+      { n: "Striker threatens in behind first", to: { st: [34, 9], d1: [30, 7], d2: [40, 7] }, d: 1 },
+      { n: "Midfielder drops into the space", to: { cm2: [40, 24], cm1: [26, 28] }, d: 0.9 },
+      { n: "They stepped up — so go long", to: { ball: [36, 12], st: [35, 12.6] }, d: 1, carry: { ball: "st" } },
+      { n: "Long and short at the same time", to: { ball: [39, 20], cm2: [40, 20.6], st: [33, 12] }, d: 0.9, carry: { ball: "cm2" } },
+    ]
+  ),
+  mkBank(
+    { id: "pp9", name: "High press", concept: "press", format: "9v9", pitch: "half",
+      summary: "Nine players squeezing into their half. The front three set the trap, the midfield two cut the escape, and the back three step right up.",
+      players: "9 plus opposition", kit: "Bibs, balls", ages: "U12–U13", skill: "defending", level: 3,
+      setup: "Their keeper restarts. Front three press, everyone else pushes up behind.",
+      points: ["Front three press as a unit, never one at a time", "Midfield cuts the pass out, they do not chase the ball", "The back three must step up — a deep line makes the press pointless", "If they beat the first press, drop and reset rather than chasing"],
+      easier: "Walk it, showing where each player goes on each pass.",
+      harder: "Live, with the pressing team having six seconds to win it." },
+    { rk: pl(34, 5, CR, "GK"), rd1: pl(20, 12, CR, ""), rd2: pl(34, 12, CR, ""), rd3: pl(48, 12, CR, ""),
+      lw: pl(22, 20, CB, "11"), st: pl(34, 18, CB, "9"), rw: pl(46, 20, CB, "7"),
+      cm1: pl(26, 28, CB, "6"), cm2: pl(42, 28, CB, "8"),
+      lb: pl(20, 38, CB, "2"), cb: pl(34, 38, CB, "5"), rb: pl(48, 38, CB, "3"), ball: bl(35.2, 6) },
+    [
+      { n: "Their keeper has it", carry: { ball: "rk" } },
+      { n: "Front three set the trap", to: { st: [34, 14], lw: [24, 16], rw: [44, 16] }, d: 0.9 },
+      { n: "Press on the pass", to: { ball: [21.2, 13], lw: [23, 14] }, d: 0.9, carry: { ball: "rd1" } },
+      { n: "Midfield cuts the escape", to: { cm1: [24, 20], cm2: [38, 22] }, d: 0.8 },
+      { n: "Back three step right up", to: { lb: [22, 28], cb: [34, 28], rb: [48, 28] }, d: 0.9 },
+    ]
+  ),
+  mkBank(
+    { id: "pb9", name: "Low block", concept: "block", format: "9v9", pitch: "half",
+      summary: "Three lines, compact, in front of your own goal. Nothing through the middle, everything pushed wide, and one player left up top.",
+      players: "9 plus opposition", kit: "Bibs, balls", ages: "U12–U13", skill: "defending", level: 3,
+      setup: "They attack, you hold the block. The coach moves the ball side to side and the shape shifts with it.",
+      points: ["Back three and midfield two, no more than ten metres between the lines", "Shift together — if one player is late there is a hole", "Show them outside, never let a pass through the middle", "Keep one forward high so there is an out ball when you win it"],
+      easier: "Walk the shifts with the coach calling each switch.",
+      harder: "Live, and count how many times they play through the middle — the target is zero." },
+    { gk: pl(34, 5, CY, "GK"), lb: pl(20, 13, CB, "2"), cb: pl(34, 13, CB, "5"), rb: pl(48, 13, CB, "3"),
+      cm1: pl(26, 21, CB, "6"), cm2: pl(42, 21, CB, "8"),
+      lw: pl(20, 28, CB, "11"), rw: pl(48, 28, CB, "7"), st: pl(34, 36, CB, "9"),
+      r1: pl(16, 34, CR, ""), r2: pl(34, 40, CR, ""), r3: pl(52, 34, CR, ""), ball: bl(35.2, 41) },
+    [
+      { n: "They have it, we get compact", carry: { ball: "r2" } },
+      { n: "Three lines, ten metres apart", to: { lb: [24, 14], cb: [34, 14], rb: [44, 14], cm1: [28, 22], cm2: [40, 22] }, d: 1 },
+      { n: "Ball switches — the block shifts", to: { ball: [17.2, 35], lb: [20, 15], cb: [30, 15], rb: [40, 16], cm1: [22, 22], cm2: [34, 23], lw: [18, 27], rw: [42, 29] }, d: 1.1, carry: { ball: "r1" } },
+      { n: "Show them outside, middle stays shut", to: { lw: [15, 30], cm1: [20, 24] }, d: 0.8 },
+      { n: "One up top for the counter", to: { st: [36, 34] }, d: 0.8 },
+    ]
+  ),
+
+  /* -------------------------------------------------------------- 11v11 */
+  mkBank(
+    { id: "pw11", name: "Create width", concept: "width", format: "11v11", pitch: "full",
+      summary: "From a 4-3-3. Wingers pin the full backs on the touchline, which drags their whole defence apart and opens the space between the lines.",
+      players: "11", kit: "Bibs, balls", ages: "U14+", skill: "ssg", level: 3,
+      setup: "Build from the back four and switch the ball across the pitch, holding the width throughout.",
+      points: ["Wingers hold the touchline until the ball arrives — no drifting in early", "One switch across the pitch is worth five passes sideways", "As the ball goes wide, the far winger stays wide", "The width is what creates the space in the middle, not the other way round"],
+      easier: "No opposition, three clean switches holding the shape.",
+      harder: "Full opposition, two touches, and a switch must precede any shot." },
+    { gk: pl(34, 98, CY, "GK"), lbk: pl(14, 84, CB, "3"), cb1: pl(26, 88, CB, "5"), cb2: pl(42, 88, CB, "6"), rbk: pl(54, 84, CB, "2"),
+      dm: pl(34, 72, CB, "4"), cm1: pl(24, 62, CB, "8"), cm2: pl(44, 62, CB, "10"),
+      lw: pl(26, 46, CB, "11"), st: pl(34, 42, CB, "9"), rw: pl(42, 46, CB, "7"), ball: bl(27.2, 89) },
+    [
+      { n: "Narrow — easy to defend against", carry: { ball: "cb1" } },
+      { n: "Wingers pin them on the touchline", to: { lw: [7, 46], rw: [61, 46] }, d: 1.3 },
+      { n: "Through midfield, keeping the width", to: { ball: [35.2, 73] }, d: 0.9, carry: { ball: "dm" } },
+      { n: "Switch it — one pass beats five", to: { ball: [59, 47], cm2: [46, 58] }, d: 1.1, carry: { ball: "rw" } },
+      { n: "Space in the middle appears", to: { st: [40, 36], cm2: [44, 50], lw: [8, 40] }, d: 1 },
+    ]
+  ),
+  mkBank(
+    { id: "pd11", name: "Create depth", concept: "depth", format: "11v11", pitch: "full",
+      summary: "The striker runs in behind to push their line back, and the ten drops into the space that opens up. Stretch them front to back and play in the middle.",
+      players: "11", kit: "Bibs, balls", ages: "U14+", skill: "ssg", level: 3,
+      setup: "Back four on the ball with a live back line to play against. One run in behind, one drop into the gap.",
+      points: ["The run in behind comes first — it pushes their line backwards", "The ten drops into the space that the run creates", "Read them: if they drop, play short; if they step, play long", "Somebody must always be threatening the space behind, all game"],
+      easier: "Passive back line so the picture is obvious.",
+      harder: "Live back line playing offside, with a two-touch limit." },
+    { gk: pl(34, 98, CY, "GK"), lbk: pl(14, 84, CB, "3"), cb1: pl(26, 88, CB, "5"), cb2: pl(42, 88, CB, "6"), rbk: pl(54, 84, CB, "2"),
+      dm: pl(34, 74, CB, "4"), cm1: pl(24, 64, CB, "8"), am: pl(38, 56, CB, "10"),
+      lw: pl(10, 50, CB, "11"), st: pl(34, 42, CB, "9"), rw: pl(58, 50, CB, "7"),
+      d1: pl(28, 36, CR, ""), d2: pl(40, 36, CR, ""), ball: bl(35.2, 75) },
+    [
+      { n: "Their back line is holding high", carry: { ball: "dm" } },
+      { n: "Striker runs in behind first", to: { st: [34, 30], d1: [28, 26], d2: [40, 26] }, d: 1.1 },
+      { n: "Their line drops — space appears", to: { am: [36, 46], cm1: [26, 60] }, d: 0.9 },
+      { n: "So play into the ten instead", to: { ball: [37, 47] }, d: 0.9, carry: { ball: "am" } },
+      { n: "Turn, and the runner goes again", to: { am: [38, 44], ball: [39.2, 45], st: [30, 28] }, d: 0.9 },
+    ]
+  ),
+  mkBank(
+    { id: "pp11", name: "High press", concept: "press", format: "11v11", pitch: "full",
+      summary: "Squeeze the whole team into their half. The front three set the trap, midfield cuts the escape, and the back four steps onto the halfway line.",
+      players: "11 plus opposition", kit: "Bibs, balls", ages: "U14+", skill: "defending", level: 3,
+      setup: "Their goal kick. Press as a unit and win it inside their half.",
+      points: ["Striker curves the run to show them one side only", "Go on the pass — the moment the ball leaves their foot", "The back four must step to halfway, or you press with a hole behind you", "Beaten by the first pass? Drop and reset, do not chase in ones"],
+      easier: "Walk it through, pausing at each pass to check positions.",
+      harder: "Live, six seconds to win it, and a goal from a press counts double." },
+    { rk: pl(34, 8, CR, "GK"), rd1: pl(18, 18, CR, ""), rd2: pl(34, 18, CR, ""), rd3: pl(50, 18, CR, ""),
+      lw: pl(22, 28, CB, "11"), st: pl(34, 26, CB, "9"), rw: pl(46, 28, CB, "7"),
+      cm1: pl(24, 40, CB, "8"), dm: pl(34, 44, CB, "4"), cm2: pl(44, 40, CB, "10"),
+      lbk: pl(16, 58, CB, "3"), cb1: pl(28, 58, CB, "5"), cb2: pl(40, 58, CB, "6"), rbk: pl(52, 58, CB, "2"),
+      ball: bl(35.2, 9) },
+    [
+      { n: "Their goal kick — set the trap", carry: { ball: "rk" } },
+      { n: "Striker shows them one side", to: { st: [40, 20], rw: [44, 24] }, d: 1 },
+      { n: "Press on the pass", to: { ball: [19.2, 19], lw: [22, 22] }, d: 0.9, carry: { ball: "rd1" } },
+      { n: "Midfield cuts the escape", to: { cm1: [22, 30], dm: [32, 36], cm2: [42, 34] }, d: 0.9 },
+      { n: "Back four step to halfway", to: { lbk: [16, 46], cb1: [28, 46], cb2: [40, 46], rbk: [52, 46] }, d: 1 },
+    ]
+  ),
+  mkBank(
+    { id: "pb11", name: "Low block", concept: "block", format: "11v11", pitch: "full",
+      summary: "Two banks of four in front of your own box with the striker left high. Compact, patient, and almost impossible to play through.",
+      players: "11 plus opposition", kit: "Bibs, balls", ages: "U14+", skill: "defending", level: 3,
+      setup: "They attack, you hold the block. Move the ball side to side and shift the whole team with it.",
+      points: ["Two banks of four, ten metres apart, thirty metres wide", "The whole block moves together — one late player is a hole", "Nothing through the middle: force everything to the touchline", "Leave the striker high so you have an out ball when you win it"],
+      easier: "Walk the shifts with the coach calling each switch of play.",
+      harder: "Live, and count passes through the middle — the target is none." },
+    { gk: pl(34, 8, CY, "GK"), lbk: pl(20, 18, CB, "3"), cb1: pl(30, 17, CB, "5"), cb2: pl(40, 17, CB, "6"), rbk: pl(50, 18, CB, "2"),
+      lm: pl(20, 28, CB, "11"), cm1: pl(30, 28, CB, "8"), cm2: pl(40, 28, CB, "4"), rm: pl(50, 28, CB, "7"),
+      am: pl(34, 40, CB, "10"), st: pl(34, 52, CB, "9"),
+      r1: pl(14, 40, CR, ""), r2: pl(34, 48, CR, ""), r3: pl(54, 40, CR, ""), ball: bl(35.2, 49) },
+    [
+      { n: "They have it, we drop into shape", carry: { ball: "r2" } },
+      { n: "Two banks of four, ten metres apart", to: { lbk: [22, 18], cb1: [30, 17], cb2: [40, 17], rbk: [48, 18], lm: [22, 28], cm1: [30, 28], cm2: [40, 28], rm: [48, 28] }, d: 1.1 },
+      { n: "Ball goes wide — shift as one", to: { ball: [15.2, 41], lbk: [16, 19], cb1: [26, 18], cb2: [36, 18], rbk: [44, 20], lm: [16, 29], cm1: [26, 29], cm2: [36, 29], rm: [44, 30] }, d: 1.2, carry: { ball: "r1" } },
+      { n: "Force it to the touchline", to: { lm: [13, 32], lbk: [14, 22] }, d: 0.9 },
+      { n: "Striker stays high for the counter", to: { st: [36, 50], am: [34, 38] }, d: 0.9 },
+    ]
+  ),
+];
+
 /* ------------------------------------------------------------- tactics */
 
 const ROLES = {
@@ -4216,7 +4471,8 @@ function DrillDesigner() {
               ))}
             </div>
           }>
-          <p className="hint">Shapes for {format}, with what every position is actually responsible for. Tap a player in any formation to see their job.</p>
+          <p className="hint">Shapes for {format}, with what every position is responsible for. Tap a player in any formation to see their job.</p>
+          <span className="subhead">Shapes</span>
           {FORMATIONS.filter((f) => f.format === format).map((f) => (
             <div key={f.id} className="listrow" role="button" tabIndex={0}
               onClick={() => { setFormation(f); setSheet("formation"); }}>
@@ -4225,6 +4481,25 @@ function DrillDesigner() {
               <ChevronRight size={16} className="chev" />
             </div>
           ))}
+
+          {PATTERNS.filter((f) => f.format === format).length > 0 && (
+            <>
+              <span className="subhead">Movements</span>
+              <p className="hint">Animated patterns you can play through, or run full screen so the players can watch it.</p>
+              {CONCEPTS.map((c) => {
+                const pat = PATTERNS.find((f) => f.format === format && f.concept === c.id);
+                if (!pat) return null;
+                return (
+                  <div key={pat.id} className="listrow" role="button" tabIndex={0}
+                    onClick={() => { setFormation(pat); setSheet("pattern"); }}>
+                    <span className="mini play"><Play size={13} /></span>
+                    <span className="rowtext">{c.label}<em>{pat.steps.length} phases · {pat.summary.split(".")[0]}</em></span>
+                    <ChevronRight size={16} className="chev" />
+                  </div>
+                );
+              })}
+            </>
+          )}
         </Screen>
       )}
 
@@ -4416,6 +4691,25 @@ function DrillDesigner() {
           <Row icon={<Sparkle />} label="Build the session"
             sub={`${plan.mins} min · ${plan.kids} players · ${plan.warm ? "warm-up + " : ""}${plan.count} drill${plan.count > 1 ? "s" : ""}${plan.games ? " + a game" : ""}`}
             onClick={buildPlan} />
+        </Sheet>
+      )}
+
+      {sheet === "pattern" && formation && (
+        <Sheet title={formation.name} onClose={() => { setFormation(null); setSheet(null); }}>
+          <PatternView d={formation} />
+          <div className="help">
+            <section>
+              <h3>What's happening</h3>
+              <ul>
+                <li>{formation.summary}</li>
+                {formation.points.map((pt, i) => <li key={i}>{pt}</li>)}
+              </ul>
+            </section>
+          </div>
+          <Row icon={<Timer size={18} />} label="Run it live" sub="Full screen, so the players can watch it"
+            onClick={() => startRun([{ drill: formation, minutes: 0, note: formation.setup }], 0)} />
+          <Row icon={<Play size={18} />} label="Open in the designer" sub="Change it to suit your team"
+            onClick={() => openDrill(formation, true)} />
         </Sheet>
       )}
 
@@ -4863,6 +5157,72 @@ function Home({ drill, counts, onGo, onHelp, onLock }) {
   );
 }
 
+function PatternView({ d }) {
+  const [step, setStep] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const [t, setT] = useState(0);
+  const tRef = useRef(0);
+  const raf = useRef(null);
+  const N = d.steps.length;
+  const p = PITCHES[d.pitch] || PITCHES.half;
+
+  useEffect(() => { tRef.current = t; }, [t]);
+  useEffect(() => {
+    if (!playing || N < 2) return;
+    let last = performance.now();
+    const tick = (now) => {
+      const dt = (now - last) / 1000;
+      last = now;
+      const seg = clamp(Math.floor(tRef.current), 0, N - 2);
+      const dur = (d.steps[seg + 1] && d.steps[seg + 1].duration) || 1.2;
+      const nx = tRef.current + dt / dur;
+      if (nx >= N - 1) { tRef.current = N - 1; setT(N - 1); setStep(N - 1); setPlaying(false); return; }
+      tRef.current = nx; setT(nx); setStep(Math.round(nx));
+      raf.current = requestAnimationFrame(tick);
+    };
+    raf.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf.current);
+  }, [playing, d, N]);
+
+  const positions = playing ? positionsAt(d, t) : d.steps[step].positions;
+  const paths = playing ? [] : pathsFor(d, step, false);
+  const carry = d.steps[step].carry || {};
+  const order = ["goal", "gate", "disc", "cone", "text", "player", "ball"];
+  const go = (n) => { setPlaying(false); const nx = clamp(n, 0, N - 1); setStep(nx); setT(nx); tRef.current = nx; };
+
+  return (
+    <>
+      <div className="formwrap">
+        <svg viewBox={`-3 -3 ${p.w + 6} ${p.h + 6}`} className="formpitch">
+          <Turf p={p} />
+          <Markings p={p} />
+          {paths.map((pa) => <MovePath key={pa.key} {...pa} />)}
+          {[...d.objects].sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind)).map((o) => {
+            const pos = positions[o.id];
+            if (!pos) return null;
+            return <Piece key={o.id} o={o} pos={pos} selected={false} playing
+              carrying={o.kind === "player" && Object.values(carry).indexOf(o.id) >= 0} />;
+          })}
+        </svg>
+      </div>
+      <p className="patnote">{d.steps[step].note}</p>
+      <div className="patctrls">
+        <button className="ic" onClick={() => go(step - 1)} disabled={step === 0} aria-label="Previous phase">
+          <span className="flip"><ChevronRight size={18} /></span>
+        </button>
+        <button className="patplay" onClick={() => {
+          if (playing) setPlaying(false);
+          else { if (t >= N - 1) { setT(0); tRef.current = 0; } setPlaying(true); }
+        }}>{playing ? <Pause size={20} /> : <Play size={20} style={{ marginLeft: 2 }} />}</button>
+        <button className="ic" onClick={() => go(step + 1)} disabled={step === N - 1} aria-label="Next phase">
+          <ChevronRight size={18} />
+        </button>
+        <span className="patcount">{step + 1} / {N}</span>
+      </div>
+    </>
+  );
+}
+
 function FormationView({ f }) {
   const [sel, setSel] = useState(null);
   const p = PITCHES[f.pitch] || PITCHES.half;
@@ -5245,6 +5605,15 @@ input { font: inherit; }
   flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;
   padding: 12px 14px calc(20px + env(safe-area-inset-bottom));
 }
+
+.subhead { font-size: 12px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: #8E8E93; margin: 8px 2px 0; }
+.mini.play { background: #30C463; }
+.patnote { margin: 0; font-size: 15px; font-weight: 600; line-height: 1.35; text-align: center; color: #1C1C1E; }
+.patctrls { display: flex; align-items: center; justify-content: center; gap: 14px; }
+.patplay { width: 52px; height: 52px; border-radius: 26px; background: #007AFF; color: #fff; display: grid; place-items: center; box-shadow: 0 4px 14px rgba(0,122,255,0.35); }
+.patplay:active { transform: scale(0.94); }
+.patcount { font-size: 13px; color: #8E8E93; font-variant-numeric: tabular-nums; min-width: 40px; }
+.flip { display: grid; place-items: center; transform: rotate(180deg); }
 
 .formwrap { background: #0E3524; border-radius: 14px; padding: 8px; }
 .formpitch { width: 100%; max-height: 46vh; display: block; }
