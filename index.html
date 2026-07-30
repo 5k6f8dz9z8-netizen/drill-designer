@@ -89,6 +89,10 @@
 
 
 
+
+
+
+
 /* ---------------------------------------------------- standalone runtime */
 const { useState, useRef, useEffect, useMemo, useCallback } = React;
 
@@ -1828,6 +1832,40 @@ const BANK = [
       { n: "Chance every time, or you're too slow", to: { ball: [34, 3.5], a5: [38, 12] }, d: 0.6, carry: { ball: null } },
     ]
   ),
+  mkBank(
+    { id: "ssg12", name: "4v4 no keepers", skill: "ssg", level: 1, ages: "U6–U8", pitch: "grid",
+      players: "8", kit: "2 small goals, bibs, balls",
+      setup: "The actual match format at U7 — four against four, a small goal at each end and nobody in nets. Everybody defends, everybody attacks, and everybody gets hundreds of touches.",
+      points: ["No keeper means somebody has to drop back — take turns, don't argue about it", "Spread out when we have the ball, squeeze in when we don't", "Have a go at goal whenever you see it", "Let them play — save the coaching for the gaps between games"],
+      easier: "Bigger goals and a slightly bigger pitch so they score more.",
+      harder: "Smaller goals, or a rule that everyone must touch it before you can score." },
+    { b1: pl(14, 11, CB, "1"), b2: pl(26, 11, CB, "2"), b3: pl(14, 19, CB, "3"), b4: pl(26, 19, CB, "4"),
+      r1: pl(14, 8, CR, "1"), r2: pl(26, 8, CR, "2"), r3: pl(14, 23, CR, "3"), r4: pl(26, 23, CR, "4"),
+      ball: bl(21.2, 20), g1: gl(20, 3, 1.4), g2: gl(20, 27, 1.4) },
+    [
+      { n: "Four against four, a goal each end, no keepers", carry: { ball: "b3" } },
+      { n: "Somebody drops back — take turns", to: { ball: [13.2, 12], b3: [16, 17], r3: [15, 20] }, d: 0.9, carry: { ball: "b1" } },
+      { n: "Spread out when we have it", to: { ball: [25, 11], b1: [16, 13], r1: [22, 10] }, d: 0.8, carry: { ball: "b2" } },
+      { n: "Have a go whenever you see the goal", to: { ball: [20, 4.5], b2: [24, 8] }, d: 0.7, carry: { ball: null } },
+    ]
+  ),
+  mkBank(
+    { id: "ssg13", name: "5v5 no keepers", skill: "ssg", level: 1, ages: "U9–U11", pitch: "grid",
+      players: "10", kit: "2 small goals, bibs, balls",
+      setup: "Five a side to two small goals with nobody in nets. Without a keeper to bail them out, they have to defend the goal as a team and pick their shots properly.",
+      points: ["One player takes the last line — rotate who it is every few minutes", "No keeper means you cannot shoot from anywhere and hope", "Angles matter: get closer or square it to somebody better placed", "Defenders block the shot rather than diving in"],
+      easier: "Add a keeper each side, or make the goals wider.",
+      harder: "Shrink the goals, or make a goal only count from inside the far half." },
+    { b1: pl(12, 12, CB, "1"), b2: pl(28, 12, CB, "2"), b3: pl(20, 16, CB, "3"), b4: pl(12, 21, CB, "4"), b5: pl(28, 21, CB, "5"),
+      r1: pl(16, 8, CR, "1"), r2: pl(24, 8, CR, "2"), r3: pl(20, 11, CR, "3"), r4: pl(14, 24, CR, "4"), r5: pl(26, 24, CR, "5"),
+      ball: bl(21.2, 17), g1: gl(20, 3, 1.4), g2: gl(20, 27, 1.4) },
+    [
+      { n: "Five a side, small goals, nobody in nets", carry: { ball: "b3" } },
+      { n: "One stays as the last line", to: { ball: [13.2, 13], b3: [21, 15], r3: [18, 12] }, d: 0.9, carry: { ball: "b1" } },
+      { n: "Work the angle — don't shoot and hope", to: { ball: [19, 10], b1: [14, 12], r1: [17, 9] }, d: 0.9, carry: { ball: "b3" } },
+      { n: "Closer, or square it to somebody better placed", to: { ball: [20, 4.5], b3: [20, 8] }, d: 0.6, carry: { ball: null } },
+    ]
+  ),
 
   /* ==================================================== warm-ups */
   mkBank(
@@ -2127,6 +2165,210 @@ const BANK = [
       { n: "Side foot, low, into the corner", to: { ball: [30.5, 3], q: [34, 10] }, d: 0.5, carry: { ball: null } },
     ]
   ),
+];
+
+
+/* How many players each drill needs, and what it becomes when you're short.
+   min = fewest it works with, max = point at which you split into groups. */
+const SQUAD = {
+  pass1: [2, 30, "Pairs. Odd one out makes a three — two passing, one working the gates."],
+  pass2: [4, 12, "Four is the drill. Three drops to a triangle, eight runs two diamonds or adds a second ball."],
+  pass3: [6, 8, "Six exactly. Seven adds a rotating defender, eight runs two rondos if you have the space."],
+  pass4: [4, 12, "Four plus a keeper. Fewer, take the defender out. More, queue and rotate every repetition."],
+  pass5: [2, 30, "Pairs. With three, the spare becomes a live defender instead of the cone."],
+  pass6: [5, 10, "Five without defenders, seven with. Fewer, drop the middle player and switch directly."],
+  pass7: [6, 12, "Six is the floor. Nine or ten lets you put two defenders in each zone."],
+  pass8: [4, 12, "Four, one per corner. Eight doubles up and adds a second ball."],
+  pass9: [7, 9, "Seven exactly. Six drops to 4v2, eight adds a rotating defender."],
+  pass10: [4, 10, "Five is the shape. Four drops one point of the W. More, queue at the start."],
+  pass11: [4, 12, "Four with one ball, six with two. Above eight it gets crowded."],
+  pass12: [4, 12, "Four without the defender, five with. Rotate roles every go."],
+  pass13: [9, 14, "Eleven is the full picture. Nine runs 3v3 plus three. Fewer, use three-zone possession."],
+  pass14: [4, 12, "Four without defenders, six with two in the middle."],
+  pass15: [6, 9, "Seven exactly. Six drops to 4v1 plus the bounce player."],
+
+  touch1: [2, 30, "Pairs. Coach serves if you have an odd one."],
+  touch2: [1, 30, "Any number — a cone and a ball each."],
+  touch3: [3, 30, "Three. With two, the coach shadows as a passive marker."],
+  touch4: [3, 30, "Three without the defender, four is the full picture."],
+  touch5: [1, 30, "Any number with a ball each. Never a numbers problem."],
+  touch6: [2, 30, "Pairs. Coach serves for an odd one out."],
+  touch7: [3, 30, "Three minimum. Five or more, queue at both servers."],
+  touch8: [3, 30, "Three: two servers and a receiver. Queue behind the receiver."],
+  touch9: [2, 30, "Pairs. Coach can serve the high ball if you're short."],
+  touch10: [4, 12, "Four minimum. Eight runs two squares."],
+  touch11: [4, 12, "Four without the defender, five is the full version."],
+
+  drib1: [1, 30, "Any number with a ball each. Under four, add gates to keep them moving."],
+  drib2: [3, 10, "Three works in a smaller circle. Above eight, run two rings."],
+  drib3: [2, 30, "Pairs. Odd number, the spare retrieves and swaps in each go."],
+  drib4: [3, 30, "Two plus a keeper. No keeper, score through two cone gates."],
+  drib5: [1, 30, "Any number with a ball each. Shrink the box under six."],
+  drib6: [4, 30, "Four works with one shark. Above twelve, run two squares."],
+  drib7: [3, 30, "Three: attacker and two defenders. More, queue and rotate defenders every two goes."],
+  drib8: [1, 30, "Any number. Two or three lines side by side so nobody queues."],
+  drib9: [4, 30, "Four runs two pitches. Six or more and the ladder works properly."],
+  drib10: [1, 30, "Any number with a ball each. The one that never needs numbers."],
+  drib11: [1, 30, "Any number. Run two lines so nobody waits."],
+  drib12: [7, 16, "Eight for the pattern to make sense. Fewer, just run the 1v1 on its own."],
+  drib13: [4, 20, "Four gives two teams of two. Uneven teams, the short side sends one player twice."],
+  drib14: [2, 30, "Pairs. Odd one out becomes a second defender for a round."],
+  drib15: [4, 12, "Four: one on the ball, two pressing, one out. Six is the full picture."],
+
+  shot1: [2, 30, "Two: one serves, one shoots. Coach serves if you're really short."],
+  shot2: [3, 30, "Three at a push — server, striker, and the coach as the defender."],
+  shot3: [3, 30, "Three: one crosser, two runners. No keeper, aim for the corners."],
+  shot4: [2, 30, "Two plus a keeper. Without one, the finish must come inside the six."],
+  shot5: [1, 30, "Any number. Two lines either side keeps everybody shooting."],
+  shot6: [2, 30, "Two plus a wall player, or the coach as the wall."],
+  shot7: [3, 30, "Three plus a keeper. Four gives a proper rotation."],
+  shot8: [2, 30, "Two: one serves, one strikes. Coach can serve."],
+  shot9: [3, 30, "Three plus a keeper. Still the full pattern without a defender."],
+  shot10: [2, 30, "Two plus a keeper. Coach can be the second runner."],
+  shot11: [4, 12, "Four plus a keeper. Walk it through with fewer."],
+  shot12: [2, 30, "Any number. Coach serves if you only have one player."],
+  shot13: [5, 14, "Five plus a keeper. Six lets you rotate the defenders."],
+  shot14: [2, 30, "Two: one cuts it back, one finishes."],
+  shot15: [3, 30, "Three: two servers and a striker. Rotate every six balls."],
+
+  def1: [2, 30, "Pairs in a channel. Odd number, one rests a rep then rotates in."],
+  def2: [2, 30, "Pairs. With four, run two pitches side by side."],
+  def3: [3, 12, "Three plus a keeper. No keeper, defend two cone gates instead."],
+  def4: [4, 10, "Four is the minimum. Above eight, split into two groups."],
+  def5: [4, 12, "Four plus a keeper. With six, rotate a pair in after each attack."],
+  def6: [2, 30, "Two plus a keeper. Without one, the attacker scores in a mini goal."],
+  def7: [3, 30, "Three: server, forward, defender. Queue and rotate with more."],
+  def8: [4, 30, "Four plus a keeper: crosser, attacker, two defenders."],
+  def9: [6, 14, "Six for three against three. Add a keeper and a fourth defender if you have them."],
+  def10: [6, 14, "Six runs 3v3. Eight is where the counter-press really bites."],
+  def11: [3, 30, "Three plus a keeper. Coach can strike the shots."],
+  def12: [8, 18, "Eight minimum — four pressing, four building. Fewer, walk the shape without a ball."],
+  def13: [2, 30, "Always pairs, never a queue. Odd one out works with the coach."],
+  def14: [4, 16, "Four per channel. Eight runs two channels at once."],
+  def15: [3, 30, "Three: server, runner, defender. Four adds a second runner to choose between."],
+
+  ssg1: [6, 12, "Eight is the game. Six runs 3v3 on the same four goals. Ten, add a neutral each side."],
+  ssg2: [6, 10, "Six exactly. Seven adds a neutral for both teams. Eight makes it 4v4 in a wider area."],
+  ssg3: [8, 16, "Ten is ideal. Eight works as 4v4 with one channel player each. Fewer, use 3v3 end zones."],
+  ssg4: [6, 12, "Eight. Six drops to 2v2 plus two neutrals. Nine, add a third neutral."],
+  ssg5: [6, 20, "Six gives three pairs. Odd number, make one team a three."],
+  ssg6: [7, 12, "Nine is the drill. Seven runs 5v2, eight runs 5v3."],
+  ssg7: [6, 14, "Six plus keepers. Without keepers, use cone gates at each end."],
+  ssg8: [6, 16, "Six total runs 2v2 plus two targets. Eight is the proper version."],
+  ssg9: [6, 16, "Six is 3v3. Odd number, add a neutral who plays for whoever has it."],
+  ssg10: [6, 16, "Six can walk a simplified pattern. Eight or more for the full shape."],
+  ssg11: [7, 14, "Nine including the keeper. Seven runs 4v2 plus a keeper."],
+  ssg12: [6, 12, "Eight is the format. Six runs 3v3 on the same goals, ten adds a floater to each side."],
+  ssg13: [8, 14, "Ten is the format. Eight runs 4v4 on a slightly smaller pitch."],
+
+  warm1: [1, 30, "Any number with a ball each."],
+  warm2: [2, 30, "Pairs. Odd one out works with the coach."],
+  warm3: [4, 10, "Four plus one in the middle. Above eight, run two boxes."],
+  warm4: [2, 30, "Two or more, a ball each."],
+  warm5: [1, 30, "Any number. One line per two players keeps it moving."],
+  warm6: [3, 20, "Three plus a keeper works. Six or more, run both sides of the goal at once."],
+
+  set1: [5, 16, "Five: taker, three in the box, a keeper. More lets you add defenders."],
+  set2: [4, 14, "Four: taker, short player, one in the box, keeper."],
+  set3: [7, 18, "Seven to fill all the jobs. Fewer, walk the positions with no delivery."],
+  set4: [4, 14, "Four plus a keeper. Use cones or bags for the wall if you're short."],
+  set5: [4, 12, "Four: thrower and three options. Add defenders above six."],
+  set6: [2, 30, "A keeper and anybody who fancies a go."],
+
+  gk1: [2, 4, "A keeper and one server. Coach can serve."],
+  gk2: [2, 4, "A keeper and one server."],
+  gk3: [3, 8, "A keeper, a crosser and an attacker. Coach can cross."],
+  gk4: [2, 8, "A keeper and one attacker. More just gives you a queue."],
+  gk5: [3, 8, "A keeper and two targets at a push, three is better."],
+  gk6: [3, 6, "A keeper and two servers. Coach can be the third."],
+};
+
+BANK.forEach((d) => {
+  const q = SQUAD[d.id];
+  if (q) { d.min = q[0]; d.max = q[1]; d.atNumbers = q[2]; }
+});
+
+
+/* ------------------------------------------------------------- tactics */
+
+const ROLES = {
+  GK: ["Goalkeeper", "Start off your line when the ball is up the park. Talk — you can see everything in front of you. The first pass after a save starts the attack."],
+  CB: ["Centre back", "Defend the middle of the goal first. Head it and kick it away from danger, never square across your own box. Step out together with your partner."],
+  FB: ["Full back", "Defend the wide area, then give width when you have the ball. Get goal-side of the winger and show them the touchline."],
+  DM: ["Holding midfielder", "Sit in front of the back line and screen the middle. Simple passes, always available for the defenders. You rarely go past the ball."],
+  CM: ["Central midfielder", "Link everything. Get on the ball as often as you can, half-turn to see forward, and cover the space your team-mates leave."],
+  AM: ["Attacking midfielder", "Play between their midfield and defence where nobody wants to pick you up. Turn forward whenever you can and get into the box late."],
+  W: ["Winger", "Stay wide and high — your width is what stretches them. One against one whenever the ball comes, and get to the byline."],
+  ST: ["Striker", "Lead the press when they have it. Play on the shoulder of the last defender, run in behind, and get across the near post for crosses."],
+};
+
+function mkForm(meta, spots) {
+  const objects = spots.map(([role, label, x, y], i) => ({
+    id: meta.id + "_p" + i, kind: "player", x0: x, y0: y,
+    color: role === "GK" ? CY : CB, label, rot: 0, size: 1, role,
+  }));
+  const positions = Object.fromEntries(objects.map((o) => [o.id, { x: o.x0, y: o.y0 }]));
+  return { ...meta, objects, steps: [{ id: meta.id + "_s0", duration: 1.2, note: "", positions, moves: {}, carry: {} }] };
+}
+
+const FORMATS = ["4v4", "5v5", "7v7", "9v9", "11v11"];
+
+const FORMATIONS = [
+  mkForm({ id: "f44a", name: "2-2", format: "4v4", ages: "U7", pitch: "half",
+    summary: "Two back, two forward. The simplest shape there is, and the easiest for young players to understand.",
+    points: ["Two stay back, two go forward — swap when you get tired, not when you feel like it", "The two at the back stay apart, not side by side in the middle", "Everybody defends when we lose it", "No keeper at 4v4, so the back two protect the goal between them"] },
+    [["CB", "1", 24, 42], ["CB", "2", 44, 42], ["ST", "3", 24, 22], ["ST", "4", 44, 22]]),
+  mkForm({ id: "f44b", name: "1-2-1 diamond", format: "4v4", ages: "U7–U8", pitch: "half",
+    summary: "One back, two wide, one up. A diamond always gives the player on the ball three angles.",
+    points: ["A diamond means there is always somebody square and somebody forward", "The two wide players give the width", "The back player is the spare one when we lose it", "Rotate every few minutes so everyone plays every point of the diamond"] },
+    [["CB", "1", 34, 44], ["CM", "2", 18, 32], ["CM", "3", 50, 32], ["ST", "4", 34, 18]]),
+
+  mkForm({ id: "f55a", name: "1-2-1", format: "5v5", ages: "U8", pitch: "half",
+    summary: "A diamond in front of the keeper. The standard 5v5 shape and the best one for learning positions.",
+    points: ["The keeper is part of the team — they start the attacks", "One in, two wide, one up: the diamond again", "Wide players come inside to defend and go wide to attack", "Everyone gets a turn at the front and the back"] },
+    [["GK", "GK", 34, 50], ["CB", "2", 34, 42], ["CM", "3", 18, 30], ["CM", "4", 50, 30], ["ST", "5", 34, 18]]),
+  mkForm({ id: "f55b", name: "2-1-1", format: "5v5", ages: "U8", pitch: "half",
+    summary: "Two at the back, one in the middle, one up. A steadier shape if you're conceding too many.",
+    points: ["Two at the back gives you cover when one gets beaten", "The middle player joins the attack and gets back for the defence", "The striker leads the press from the front", "More solid than a diamond, but you will have less of the ball"] },
+    [["GK", "GK", 34, 50], ["FB", "2", 24, 42], ["FB", "3", 44, 42], ["CM", "4", 34, 30], ["ST", "5", 34, 18]]),
+
+  mkForm({ id: "f77a", name: "2-3-1", format: "7v7", ages: "U9–U11", pitch: "half",
+    summary: "The most common 7v7 shape in Scotland. Two back, three across the middle, one up front.",
+    points: ["The three in midfield are the engine — they work both ways", "Wide midfielders give the width attacking and tuck in defending", "The two defenders stay apart and cover each other", "One striker leads the press and holds the ball up"] },
+    [["GK", "GK", 34, 50], ["FB", "2", 22, 42], ["FB", "3", 46, 42], ["W", "4", 14, 30], ["CM", "5", 34, 30], ["W", "6", 54, 30], ["ST", "7", 34, 16]]),
+  mkForm({ id: "f77b", name: "3-2-1", format: "7v7", ages: "U9–U11", pitch: "half",
+    summary: "Three at the back with two in midfield. Solid, and a good shape against a team that is beating you.",
+    points: ["Three at the back means one can step out with the ball", "The two in midfield must not both go forward at once", "The striker works alone, so midfield has to support quickly", "Safer than 2-3-1, but you will see less of the ball"] },
+    [["GK", "GK", 34, 50], ["FB", "2", 18, 42], ["CB", "3", 34, 44], ["FB", "4", 50, 42], ["CM", "5", 26, 30], ["CM", "6", 42, 30], ["ST", "7", 34, 16]]),
+  mkForm({ id: "f77c", name: "2-2-2", format: "7v7", ages: "U9–U11", pitch: "half",
+    summary: "Two banks of two with two up top. Easy to explain and it keeps everybody in pairs.",
+    points: ["Everyone has a partner — defend in twos, attack in twos", "The two strikers split wide when we have it and squeeze in when we don't", "Nobody is ever the only one covering a space", "Good for younger groups who get lost on their own"] },
+    [["GK", "GK", 34, 50], ["FB", "2", 24, 42], ["FB", "3", 44, 42], ["CM", "4", 24, 30], ["CM", "5", 44, 30], ["ST", "6", 26, 16], ["ST", "7", 42, 16]]),
+
+  mkForm({ id: "f99a", name: "3-2-3", format: "9v9", ages: "U12–U13", pitch: "half",
+    summary: "The natural step up from 7v7, and the shape that leads into 4-3-3 at eleven a side.",
+    points: ["Three at the back with full backs who push on when we attack", "Two in midfield cover a lot of ground — pick your workers", "Wingers stay high and wide, that is what stretches them", "It teaches the positions they will play in 11v11"] },
+    [["GK", "GK", 34, 50], ["FB", "2", 18, 43], ["CB", "3", 34, 44], ["FB", "4", 50, 43], ["CM", "5", 26, 31], ["CM", "6", 42, 31], ["W", "7", 14, 18], ["ST", "9", 34, 14], ["W", "11", 54, 18]]),
+  mkForm({ id: "f99b", name: "3-3-2", format: "9v9", ages: "U12–U13", pitch: "half",
+    summary: "Three lines with an extra body in midfield. Good if you are losing the middle of the park.",
+    points: ["Three in midfield wins you the middle", "The two up top work as a pair, one short and one in behind", "Wide midfielders have to get back — that is the trade-off", "Hard to play through, slightly less threatening going forward"] },
+    [["GK", "GK", 34, 50], ["FB", "2", 18, 43], ["CB", "3", 34, 44], ["FB", "4", 50, 43], ["W", "5", 18, 31], ["CM", "6", 34, 31], ["W", "7", 50, 31], ["ST", "8", 26, 16], ["ST", "9", 42, 16]]),
+
+  mkForm({ id: "f11a", name: "4-4-2", format: "11v11", ages: "U14+", pitch: "full",
+    summary: "Two banks of four and a front pair. Old fashioned, well understood, and very hard to play through.",
+    points: ["Keep the two lines of four compact, a few metres apart", "Full backs only go forward one at a time", "The front two split the centre backs and work as a pair", "Everybody knows their job, which is why it still works at grassroots"] },
+    [["GK", "GK", 34, 98], ["FB", "2", 12, 86], ["CB", "5", 26, 88], ["CB", "6", 42, 88], ["FB", "3", 56, 86],
+     ["W", "7", 12, 66], ["CM", "4", 26, 68], ["CM", "8", 42, 68], ["W", "11", 56, 66], ["ST", "9", 28, 46], ["ST", "10", 40, 46]]),
+  mkForm({ id: "f11b", name: "4-3-3", format: "11v11", ages: "U14+", pitch: "full",
+    summary: "A back four, a midfield triangle and a front three. The modern default at every level.",
+    points: ["The holding midfielder sits and screens, the other two get forward", "Wingers stay wide and high until the ball comes", "Full backs give the width when the wingers come inside", "The front three press together, starting with the striker"] },
+    [["GK", "GK", 34, 98], ["FB", "2", 12, 86], ["CB", "5", 26, 88], ["CB", "6", 42, 88], ["FB", "3", 56, 86],
+     ["DM", "4", 34, 72], ["CM", "8", 24, 62], ["CM", "10", 44, 62], ["W", "7", 12, 44], ["ST", "9", 34, 40], ["W", "11", 56, 44]]),
+  mkForm({ id: "f11c", name: "4-2-3-1", format: "11v11", ages: "U14+", pitch: "full",
+    summary: "Two holding midfielders behind a three, with a lone striker. Balanced, and it protects the back four well.",
+    points: ["The two holders never both go forward at the same time", "The number ten plays between their midfield and defence", "The wide players come inside to create overloads", "The striker holds the ball up so the three can join in"] },
+    [["GK", "GK", 34, 98], ["FB", "2", 12, 86], ["CB", "5", 26, 88], ["CB", "6", 42, 88], ["FB", "3", 56, 86],
+     ["DM", "4", 26, 72], ["DM", "8", 42, 72], ["W", "7", 14, 56], ["AM", "10", 34, 54], ["W", "11", 54, 56], ["ST", "9", 34, 40]]),
 ];
 
 /* ------------------------------------------------------- svg scene parts */
@@ -2513,13 +2755,17 @@ function DrillDesigner() {
   const [view, setView] = useState({ x: 0, y: 0, k: 8 });
   const [size, setSize] = useState({ w: 360, h: 480 });
   const [sheet, setSheet] = useState(null);
-  const [tab, setTab] = useState("drills");
+  const [tab, setTab] = useState("bank");
   const [toast, setToast] = useState(null);
   const [library, setLibrary] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [editSession, setEditSession] = useState(null);
   const [bankFilter, setBankFilter] = useState({ skill: "all", level: "all", age: "all", fav: false });
   const [query, setQuery] = useState("");
+  const [plan, setPlan] = useState({ mins: 60, kids: 10, focus: "passing", count: 3, games: true, gameMins: 15 });
+  const [screen, setScreen] = useState("home");
+  const [formation, setFormation] = useState(null);
+  const [format, setFormat] = useState("7v7");
   const [favs, setFavs] = useState([]);
   const [run, setRun] = useState(null);
   const [bankItem, setBankItem] = useState(null);
@@ -2586,7 +2832,7 @@ function DrillDesigner() {
     const ro = new ResizeObserver(([e]) => setSize({ w: e.contentRect.width, h: e.contentRect.height }));
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [screen]);
 
   const fit = useCallback(() => {
     const pad = 26;
@@ -3072,6 +3318,62 @@ function DrillDesigner() {
     const copy = deepClone(d);
     setDrill(fresh ? { ...copy, id: uid() } : copy);
     setStep(0); setT(0); tRef.current = 0; setSel(null); setSheet(null); setBankItem(null);
+    setFormation(null); setScreen("designer");
+  };
+
+
+  /* ---- build a session from a few answers */
+  const shuffled = (arr) => {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+
+  const buildPlan = () => {
+    const fits = (d) => !d.min || d.min <= plan.kids;
+    const take = (pool, n) => shuffled(pool).slice(0, n);
+    const MAIN = ["passing", "firsttouch", "dribbling", "shooting", "defending"];
+
+    const warm = take(BANK.filter((d) => d.skill === "warmup" && fits(d)), 1);
+    let mains = [];
+    if (plan.focus === "mixed") {
+      const perSkill = shuffled(MAIN);
+      for (const sk of perSkill) {
+        if (mains.length >= plan.count) break;
+        const one = take(BANK.filter((d) => d.skill === sk && fits(d)), 1);
+        mains = mains.concat(one);
+      }
+    } else {
+      mains = take(BANK.filter((d) => d.skill === plan.focus && fits(d)), plan.count)
+        .sort((a, b) => a.level - b.level);
+    }
+    if (mains.length < plan.count) {
+      const extra = take(BANK.filter((d) => MAIN.indexOf(d.skill) >= 0 && fits(d) && mains.indexOf(d) < 0), plan.count - mains.length);
+      mains = mains.concat(extra);
+    }
+    const game = plan.games ? take(BANK.filter((d) => d.skill === "ssg" && fits(d)), 1) : [];
+
+    const warmMins = plan.mins >= 75 ? 15 : 10;
+    const gameMins = plan.games ? plan.gameMins : 0;
+    const left = Math.max(plan.count * 5, plan.mins - warmMins - gameMins);
+    const each = Math.max(5, Math.round(left / Math.max(1, mains.length) / 5) * 5);
+
+    const row = (d, minutes) => ({ id: uid(), drillId: d.id, name: d.name, minutes, note: d.setup });
+    const items = [
+      ...warm.map((d) => row(d, warmMins)),
+      ...mains.map((d) => row(d, each)),
+      ...game.map((d) => row(d, gameMins)),
+    ];
+    const label = plan.focus === "mixed" ? "Mixed" : (SKILLS.find((sk) => sk.id === plan.focus) || {}).label;
+    const total = items.reduce((a, b) => a + b.minutes, 0);
+    const ns = { id: uid(), name: `${label} session`, date: `${plan.kids} players · ${total} min`, items };
+    saveSessions([ns, ...sessions]);
+    setEditSession(ns);
+    setSheet("session");
+    flash(`${items.length} drills, ${total} minutes`);
   };
 
   /* ---- session helpers */
@@ -3090,11 +3392,12 @@ function DrillDesigner() {
   };
 
   /* ------------------------------------------------------------ render */
-  if ((GATE.protect === "app" && !unlocked) || (admin && !unlocked)) {
+  if (admin || (GATE.protect === "app" && !unlocked)) {
     return (
       <div className="app">
         <style>{CSS}</style>
-        <Gate admin={admin} onUnlock={() => setUnlocked(true)} />
+        <Gate admin={admin} unlocked={unlocked} onUnlock={() => setUnlocked(true)}
+          onSkip={() => { history.replaceState(null, "", location.pathname); setRun(null); setSheet(null); }} />
       </div>
     );
   }
@@ -3103,169 +3406,172 @@ function DrillDesigner() {
     <div className="app">
       <style>{CSS}</style>
 
-      <header className="bar">
-        <input className="title" value={drill.name} onChange={(e) => setDrill({ ...drill, name: e.target.value })} placeholder="Untitled drill" />
-        <div className="row">
-          <button className="ic" onClick={undo} disabled={!history.length} aria-label="Undo"><Undo2 size={18} /></button>
-          <button className="ic" onClick={() => setSheet("help")} aria-label="How it works"><Info size={18} /></button>
-          <button className="ic" onClick={() => startRun([{ drill, minutes: 0, note: "" }], 0)} aria-label="Run mode"><Timer size={18} /></button>
-          <button className="ic" onClick={() => { setTab("drills"); setSheet("library"); }} aria-label="Drills and sessions"><FolderOpen size={18} /></button>
-          <button className="ic primary" onClick={() => setSheet("export")} aria-label="Export"><Share2 size={18} /></button>
-        </div>
-      </header>
+      {screen === "designer" && (
+        <>
+        <header className="bar">
+          <button className="ic back" onClick={() => setScreen("home")} aria-label="Home"><ChevronRight size={18} /></button>
+          <input className="title" value={drill.name} onChange={(e) => setDrill({ ...drill, name: e.target.value })} placeholder="Untitled drill" />
+          <div className="row">
+            <button className="ic" onClick={undo} disabled={!history.length} aria-label="Undo"><Undo2 size={18} /></button>
+            <button className="ic" onClick={() => startRun([{ drill, minutes: 0, note: "" }], 0)} aria-label="Run mode"><Timer size={18} /></button>
+            <button className="ic primary" onClick={() => setSheet("export")} aria-label="Export"><Share2 size={18} /></button>
+          </div>
+        </header>
 
-      <div className="stage" ref={stageRef}>
-        <svg ref={svgRef} width="100%" height="100%" viewBox={`0 0 ${size.w} ${size.h}`}
-          onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onWheel={onWheel}
-          style={{ touchAction: "none", display: "block", background: SURROUND }}>
-          <g transform={`translate(${view.x},${view.y}) scale(${view.k})`}>
-            <Turf p={pitch} />
-            <Markings p={pitch} />
-            {paths.map((p) => <MovePath key={p.key} {...p} />)}
-            {[...drill.objects]
-              .sort((a, b) => ["goal", "gate", "disc", "cone", "text", "player", "ball"].indexOf(a.kind) - ["goal", "gate", "disc", "cone", "text", "player", "ball"].indexOf(b.kind))
-              .map((o) => {
-                const pos = shown[o.id];
-                if (!pos) return null;
-                return <Piece key={o.id} o={o} pos={pos} selected={o.id === sel} playing={playing}
-                  carrying={o.kind === "player" && Object.values(curCarry).indexOf(o.id) >= 0} />;
-              })}
-          </g>
-        </svg>
+        <div className="stage" ref={stageRef}>
+          <svg ref={svgRef} width="100%" height="100%" viewBox={`0 0 ${size.w} ${size.h}`}
+            onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onWheel={onWheel}
+            style={{ touchAction: "none", display: "block", background: SURROUND }}>
+            <g transform={`translate(${view.x},${view.y}) scale(${view.k})`}>
+              <Turf p={pitch} />
+              <Markings p={pitch} />
+              {paths.map((p) => <MovePath key={p.key} {...p} />)}
+              {[...drill.objects]
+                .sort((a, b) => ["goal", "gate", "disc", "cone", "text", "player", "ball"].indexOf(a.kind) - ["goal", "gate", "disc", "cone", "text", "player", "ball"].indexOf(b.kind))
+                .map((o) => {
+                  const pos = shown[o.id];
+                  if (!pos) return null;
+                  return <Piece key={o.id} o={o} pos={pos} selected={o.id === sel} playing={playing}
+                    carrying={o.kind === "player" && Object.values(curCarry).indexOf(o.id) >= 0} />;
+                })}
+            </g>
+          </svg>
 
-        <div className="float">
-          <button className="chipbtn" onClick={fit} aria-label="Fit pitch"><Maximize2 size={16} /></button>
-          <button className={"chipbtn" + (allPaths ? " on" : "")} onClick={() => setAllPaths(!allPaths)} aria-label="Show all paths"><Route size={16} /></button>
-        </div>
+          <div className="float">
+            <button className="chipbtn" onClick={fit} aria-label="Fit pitch"><Maximize2 size={16} /></button>
+            <button className={"chipbtn" + (allPaths ? " on" : "")} onClick={() => setAllPaths(!allPaths)} aria-label="Show all paths"><Route size={16} /></button>
+          </div>
 
-        <div className="pitchpick">
-          {Object.entries(PITCHES).map(([k, v]) => (
-            <button key={k} className={"seg" + (drill.pitch === k ? " on" : "")}
-              onClick={() => commit((d) => { d.pitch = k; return d; })}>{v.label}</button>
-          ))}
-        </div>
+          <div className="pitchpick">
+            {Object.entries(PITCHES).map(([k, v]) => (
+              <button key={k} className={"seg" + (drill.pitch === k ? " on" : "")}
+                onClick={() => commit((d) => { d.pitch = k; return d; })}>{v.label}</button>
+            ))}
+          </div>
 
-        {selObj && !playing && (
-          <div className="inspector">
-            <div className="insphead">
-              <span className="kindname">
-                {selObj.kind === "player" ? "Player" : selObj.kind[0].toUpperCase() + selObj.kind.slice(1)}
-                {selObj.kind === "player" && Object.values(curCarry).indexOf(selObj.id) >= 0 && <em className="badge">has the ball</em>}
-              </span>
-              <div className="row">
-                <button className="ic sm" onClick={duplicateSel} aria-label="Duplicate"><Copy size={15} /></button>
-                <button className="ic sm" onClick={() => updateSel({ rot: ((selObj.rot || 0) + 45) % 360 })} aria-label="Rotate"><RotateCw size={15} /></button>
-                <button className="ic sm danger" onClick={deleteSel} aria-label="Delete"><Trash2 size={15} /></button>
-                <button className="ic sm" onClick={() => setSel(null)} aria-label="Close"><X size={15} /></button>
-              </div>
-            </div>
-
-            {["player", "cone", "disc", "gate", "text"].indexOf(selObj.kind) >= 0 && (
-              <div className="swatches">
-                {KIT.map((k) => (
-                  <button key={k.c} className={"sw" + (selObj.color === k.c ? " on" : "")} style={{ background: k.c }}
-                    onClick={() => updateSel({ color: k.c })} aria-label={k.name} />
-                ))}
-              </div>
-            )}
-
-            {(selObj.kind === "player" || selObj.kind === "text") && (
-              <input className="field" value={selObj.label} maxLength={selObj.kind === "text" ? 24 : 3}
-                placeholder={selObj.kind === "text" ? "Note" : "No. or initials"}
-                onChange={(e) => updateSel({ label: e.target.value })} />
-            )}
-
-            {selObj.kind === "ball" && (
-              <div className="carryrow">
-                {curCarry[selObj.id] ? (
-                  <>
-                    <span className="lbl">
-                      At the feet of {(drill.objects.find((o) => o.id === curCarry[selObj.id]) || {}).label || "a player"}
-                    </span>
-                    <button className="minibtn" onClick={releaseBall}><Link2Off size={13} /> Release</button>
-                  </>
-                ) : (
-                  <span className="lbl">Loose ball — drag it onto a player to attach it</span>
-                )}
-              </div>
-            )}
-
-            {(selObj.kind === "goal" || selObj.kind === "gate") && (
-              <div className="stepper">
-                <span className="lbl">Width</span>
-                <button onClick={() => updateSel({ size: clamp((selObj.size || 2) - 0.5, 0.5, 8) })}>–</button>
-                <button onClick={() => updateSel({ size: clamp((selObj.size || 2) + 0.5, 0.5, 8) })}>+</button>
-              </div>
-            )}
-
-            {step > 0 && (
-              <div className="moverow">
-                <span className="lbl">Move into step {step + 1}</span>
-                <div className="segs">
-                  {["run", "pass", "dribble", "shot"].map((m) => (
-                    <button key={m} className={"seg" + (moveTypeFor(drill, step, selObj) === m ? " on" : "")}
-                      onClick={() => setMove(m)}>{MOVE_LABEL[m]}</button>
-                  ))}
+          {selObj && !playing && (
+            <div className="inspector">
+              <div className="insphead">
+                <span className="kindname">
+                  {selObj.kind === "player" ? "Player" : selObj.kind[0].toUpperCase() + selObj.kind.slice(1)}
+                  {selObj.kind === "player" && Object.values(curCarry).indexOf(selObj.id) >= 0 && <em className="badge">has the ball</em>}
+                </span>
+                <div className="row">
+                  <button className="ic sm" onClick={duplicateSel} aria-label="Duplicate"><Copy size={15} /></button>
+                  <button className="ic sm" onClick={() => updateSel({ rot: ((selObj.rot || 0) + 45) % 360 })} aria-label="Rotate"><RotateCw size={15} /></button>
+                  <button className="ic sm danger" onClick={deleteSel} aria-label="Delete"><Trash2 size={15} /></button>
+                  <button className="ic sm" onClick={() => setSel(null)} aria-label="Close"><X size={15} /></button>
                 </div>
               </div>
-            )}
-          </div>
-        )}
-      </div>
 
-      <div className="dock">
-        <div className="steps">
-          {drill.steps.map((s, i) => (
-            <button key={s.id} className={"stepchip" + (i === step ? " on" : "")}
-              onClick={() => { setPlaying(false); setStep(i); setT(i); tRef.current = i; }}>{i + 1}</button>
-          ))}
-          <button className="stepchip add" onClick={addStep}><Plus size={15} /></button>
-          {N > 1 && <button className="stepchip del" onClick={deleteStep}><Trash2 size={14} /></button>}
-          {step > 0 && (
-            <span className="dur">
-              <button onClick={() => setDuration(-0.2)}>–</button>
-              {drill.steps[step].duration.toFixed(1)}s
-              <button onClick={() => setDuration(0.2)}>+</button>
-            </span>
+              {["player", "cone", "disc", "gate", "text"].indexOf(selObj.kind) >= 0 && (
+                <div className="swatches">
+                  {KIT.map((k) => (
+                    <button key={k.c} className={"sw" + (selObj.color === k.c ? " on" : "")} style={{ background: k.c }}
+                      onClick={() => updateSel({ color: k.c })} aria-label={k.name} />
+                  ))}
+                </div>
+              )}
+
+              {(selObj.kind === "player" || selObj.kind === "text") && (
+                <input className="field" value={selObj.label} maxLength={selObj.kind === "text" ? 24 : 3}
+                  placeholder={selObj.kind === "text" ? "Note" : "No. or initials"}
+                  onChange={(e) => updateSel({ label: e.target.value })} />
+              )}
+
+              {selObj.kind === "ball" && (
+                <div className="carryrow">
+                  {curCarry[selObj.id] ? (
+                    <>
+                      <span className="lbl">
+                        At the feet of {(drill.objects.find((o) => o.id === curCarry[selObj.id]) || {}).label || "a player"}
+                      </span>
+                      <button className="minibtn" onClick={releaseBall}><Link2Off size={13} /> Release</button>
+                    </>
+                  ) : (
+                    <span className="lbl">Loose ball — drag it onto a player to attach it</span>
+                  )}
+                </div>
+              )}
+
+              {(selObj.kind === "goal" || selObj.kind === "gate") && (
+                <div className="stepper">
+                  <span className="lbl">Width</span>
+                  <button onClick={() => updateSel({ size: clamp((selObj.size || 2) - 0.5, 0.5, 8) })}>–</button>
+                  <button onClick={() => updateSel({ size: clamp((selObj.size || 2) + 0.5, 0.5, 8) })}>+</button>
+                </div>
+              )}
+
+              {step > 0 && (
+                <div className="moverow">
+                  <span className="lbl">Move into step {step + 1}</span>
+                  <div className="segs">
+                    {["run", "pass", "dribble", "shot"].map((m) => (
+                      <button key={m} className={"seg" + (moveTypeFor(drill, step, selObj) === m ? " on" : "")}
+                        onClick={() => setMove(m)}>{MOVE_LABEL[m]}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
 
-        <input className="notefield" value={drill.steps[step].note || ""} placeholder={`Coaching point for step ${step + 1}`}
-          onChange={(e) => setNote(e.target.value)} />
-
-        <div className="transport">
-          <button className="ic" onClick={() => { setPlaying(false); setT(0); tRef.current = 0; setStep(0); }} aria-label="Restart"><SkipBack size={17} /></button>
-          <button className="play" onClick={() => {
-            if (N < 2) { flash("Add a second step to simulate"); return; }
-            if (playing) setPlaying(false);
-            else { setSel(null); if (t >= N - 1) { setT(0); tRef.current = 0; } setPlaying(true); }
-          }}>{playing ? <Pause size={19} /> : <Play size={19} style={{ marginLeft: 2 }} />}</button>
-          <input className="scrub" type="range" min={0} max={Math.max(0.001, N - 1)} step={0.01} value={t}
-            onChange={(e) => { setPlaying(false); const v = +e.target.value; setT(v); tRef.current = v; setStep(Math.round(v)); }} />
-          <div className="segs tight">
-            {[0.5, 1, 2].map((s) => (
-              <button key={s} className={"seg" + (speed === s ? " on" : "")} onClick={() => setSpeed(s)}>{s}×</button>
+        <div className="dock">
+          <div className="steps">
+            {drill.steps.map((s, i) => (
+              <button key={s.id} className={"stepchip" + (i === step ? " on" : "")}
+                onClick={() => { setPlaying(false); setStep(i); setT(i); tRef.current = i; }}>{i + 1}</button>
             ))}
+            <button className="stepchip add" onClick={addStep}><Plus size={15} /></button>
+            {N > 1 && <button className="stepchip del" onClick={deleteStep}><Trash2 size={14} /></button>}
+            {step > 0 && (
+              <span className="dur">
+                <button onClick={() => setDuration(-0.2)}>–</button>
+                {drill.steps[step].duration.toFixed(1)}s
+                <button onClick={() => setDuration(0.2)}>+</button>
+              </span>
+            )}
+          </div>
+
+          <input className="notefield" value={drill.steps[step].note || ""} placeholder={`Coaching point for step ${step + 1}`}
+            onChange={(e) => setNote(e.target.value)} />
+
+          <div className="transport">
+            <button className="ic" onClick={() => { setPlaying(false); setT(0); tRef.current = 0; setStep(0); }} aria-label="Restart"><SkipBack size={17} /></button>
+            <button className="play" onClick={() => {
+              if (N < 2) { flash("Add a second step to simulate"); return; }
+              if (playing) setPlaying(false);
+              else { setSel(null); if (t >= N - 1) { setT(0); tRef.current = 0; } setPlaying(true); }
+            }}>{playing ? <Pause size={19} /> : <Play size={19} style={{ marginLeft: 2 }} />}</button>
+            <input className="scrub" type="range" min={0} max={Math.max(0.001, N - 1)} step={0.01} value={t}
+              onChange={(e) => { setPlaying(false); const v = +e.target.value; setT(v); tRef.current = v; setStep(Math.round(v)); }} />
+            <div className="segs tight">
+              {[0.5, 1, 2].map((s) => (
+                <button key={s} className={"seg" + (speed === s ? " on" : "")} onClick={() => setSpeed(s)}>{s}×</button>
+              ))}
+            </div>
+          </div>
+
+          <div className="palette">
+            <PalBtn label="Player" onClick={() => addObject("player", { color: "#0A84FF", label: String(drill.objects.filter((o) => o.kind === "player").length + 1) })}>
+              <span className="dot" style={{ background: "#0A84FF" }} />
+            </PalBtn>
+            <PalBtn label="Opponent" onClick={() => addObject("player", { color: "#FF3B30" })}>
+              <span className="dot" style={{ background: "#FF3B30" }} />
+            </PalBtn>
+            <PalBtn label="Ball" onClick={() => addObject("ball", { color: "#FFFFFF" })}>
+              <span className="dot" style={{ background: "#fff", border: "1.5px solid #1C1C1E" }} />
+            </PalBtn>
+            <PalBtn label="Cone" onClick={() => addObject("cone", { color: "#FF9F0A" })}><span className="tri" /></PalBtn>
+            <PalBtn label="Disc" onClick={() => addObject("disc", { color: "#FFD60A" })}><span className="disc" /></PalBtn>
+            <PalBtn label="Gate" onClick={() => addObject("gate", { color: "#FF9F0A", size: 2 })}><span className="gate"><i /><i /></span></PalBtn>
+            <PalBtn label="Goal" onClick={() => addObject("goal", { color: "#F5F5F7", size: 2 })}><span className="goal" /></PalBtn>
+            <PalBtn label="Note" onClick={() => addObject("text", { color: "#FFFFFF", label: "Note" })}><span className="note">T</span></PalBtn>
           </div>
         </div>
-
-        <div className="palette">
-          <PalBtn label="Player" onClick={() => addObject("player", { color: "#0A84FF", label: String(drill.objects.filter((o) => o.kind === "player").length + 1) })}>
-            <span className="dot" style={{ background: "#0A84FF" }} />
-          </PalBtn>
-          <PalBtn label="Opponent" onClick={() => addObject("player", { color: "#FF3B30" })}>
-            <span className="dot" style={{ background: "#FF3B30" }} />
-          </PalBtn>
-          <PalBtn label="Ball" onClick={() => addObject("ball", { color: "#FFFFFF" })}>
-            <span className="dot" style={{ background: "#fff", border: "1.5px solid #1C1C1E" }} />
-          </PalBtn>
-          <PalBtn label="Cone" onClick={() => addObject("cone", { color: "#FF9F0A" })}><span className="tri" /></PalBtn>
-          <PalBtn label="Disc" onClick={() => addObject("disc", { color: "#FFD60A" })}><span className="disc" /></PalBtn>
-          <PalBtn label="Gate" onClick={() => addObject("gate", { color: "#FF9F0A", size: 2 })}><span className="gate"><i /><i /></span></PalBtn>
-          <PalBtn label="Goal" onClick={() => addObject("goal", { color: "#F5F5F7", size: 2 })}><span className="goal" /></PalBtn>
-          <PalBtn label="Note" onClick={() => addObject("text", { color: "#FFFFFF", label: "Note" })}><span className="note">T</span></PalBtn>
-        </div>
-      </div>
+        </>
+      )}
 
       {sheet === "help" && (
         <Sheet title="How it works" onClose={() => setSheet(null)}>
@@ -3319,6 +3625,7 @@ function DrillDesigner() {
               <ul>
                 <li>The folder icon holds <b>{BANK.length} ready-made drills</b> across nine categories — warm-ups, passing, first touch, dribbling, shooting, defending, small-sided games, set pieces and goalkeeping.</li>
                 <li>Filter by skill, by level and by age group, or search across names, setups and coaching points — typing "turn" finds every turning drill wherever it lives.</li>
+                <li>Every drill says how many players it needs and what it becomes when you're short.</li>
                 <li>Levels run easy to hard within each category, so you move a group up a rung rather than hand them something unrelated.</li>
                 <li>Tap the star to favourite one, then use the Favourites chip to pull up the handful you actually run.</li>
                 <li>Every drill opens with a setup, kit list, coaching points and notes on making it harder or easier. Open it in the designer and it becomes yours to change.</li>
@@ -3328,7 +3635,8 @@ function DrillDesigner() {
             <section>
               <h3>6 · Build a session</h3>
               <ul>
-                <li>Save drills to <b>My drills</b>, then use the <b>Sessions</b> tab to group them with minutes and a note each.</li>
+                <li><b>Build me a session</b> asks five questions — how long, how many kids, what you're working on, how many drills, and whether to finish with a game — then picks the drills, sets the timings and saves the plan.</li>
+                <li>Or start an empty session and add drills yourself, with minutes and a note each.</li>
                 <li>Drills from the library can go straight into a session too.</li>
                 <li>Export the session as one plan sheet: every drill's diagram, its timing and your notes on a single page.</li>
               </ul>
@@ -3376,22 +3684,101 @@ function DrillDesigner() {
         </Sheet>
       )}
 
-      {sheet === "library" && (
-        <Sheet title={tab === "drills" ? "My drills" : tab === "bank" ? "Library" : "Sessions"} onClose={() => setSheet(null)}
+      {screen === "home" && (
+        <Home
+          drill={drill}
+          counts={{ bank: BANK.length, mine: library.length, sessions: sessions.length, forms: FORMATIONS.length }}
+          onGo={(to) => setScreen(to)}
+          onHelp={() => setSheet("help")}
+          onLock={GATE.protect === "off" ? null : () => {
+            try { localStorage.removeItem("dd-access"); } catch (e) { }
+            setUnlocked(GATE.protect !== "app"); flash("Locked");
+          }}
+        />
+      )}
+
+      {screen === "drills" && (
+        <Screen title="Drills" onBack={() => setScreen("home")}
           head={
             <div className="tabs">
-              <button className={"seg" + (tab === "drills" ? " on" : "")} onClick={() => setTab("drills")}>My drills</button>
               <button className={"seg" + (tab === "bank" ? " on" : "")} onClick={() => setTab("bank")}>Library</button>
-              <button className={"seg" + (tab === "sessions" ? " on" : "")} onClick={() => setTab("sessions")}>Sessions</button>
+              <button className={"seg" + (tab === "mine" ? " on" : "")} onClick={() => setTab("mine")}>My drills</button>
             </div>
           }>
-          {tab === "drills" && (
+          {tab !== "mine" && GATE.protect === "bank" && !unlocked && (
+            <Gate inline onUnlock={() => setUnlocked(true)} />
+          )}
+
+          {tab !== "mine" && (GATE.protect !== "bank" || unlocked) && (
+            <>
+              <input className="searchfield" value={query} placeholder={`Search ${BANK.length} drills`}
+                onChange={(e) => setQuery(e.target.value)} />
+              <div className="filters">
+                <div className="chips">
+                  <button className={"chip star" + (bankFilter.fav ? " on" : "")}
+                    onClick={() => setBankFilter({ ...bankFilter, fav: !bankFilter.fav })}>
+                    <Star size={13} /> Favourites
+                  </button>
+                  <button className={"chip" + (bankFilter.skill === "all" ? " on" : "")} onClick={() => setBankFilter({ ...bankFilter, skill: "all" })}>All skills</button>
+                  {SKILLS.map((sk) => (
+                    <button key={sk.id} className={"chip" + (bankFilter.skill === sk.id ? " on" : "")}
+                      onClick={() => setBankFilter({ ...bankFilter, skill: sk.id })}>{sk.label}</button>
+                  ))}
+                </div>
+                <div className="chips">
+                  <button className={"chip" + (bankFilter.level === "all" ? " on" : "")} onClick={() => setBankFilter({ ...bankFilter, level: "all" })}>Any level</button>
+                  {LEVELS.map((l) => (
+                    <button key={l.id} className={"chip" + (bankFilter.level === l.id ? " on" : "")}
+                      onClick={() => setBankFilter({ ...bankFilter, level: l.id })}>{l.label}</button>
+                  ))}
+                </div>
+                <div className="chips">
+                  <button className={"chip" + (bankFilter.age === "all" ? " on" : "")} onClick={() => setBankFilter({ ...bankFilter, age: "all" })}>Any age</button>
+                  {AGES.map((ag) => (
+                    <button key={ag} className={"chip" + (bankFilter.age === ag ? " on" : "")}
+                      onClick={() => setBankFilter({ ...bankFilter, age: ag })}>{ag}</button>
+                  ))}
+                </div>
+              </div>
+              {(() => {
+                const list = BANK.filter((d) =>
+                  (bankFilter.skill === "all" || d.skill === bankFilter.skill) &&
+                  (bankFilter.level === "all" || d.level === bankFilter.level) &&
+                  (bankFilter.age === "all" || d.ages === bankFilter.age) &&
+                  (!bankFilter.fav || favs.indexOf(d.id) >= 0) &&
+                  bankMatches(d, query)
+                ).sort((a, b) => a.level - b.level);
+                if (!list.length) return <p className="hint">Nothing matches — try clearing the search or a filter.</p>;
+                return (
+                  <>
+                    {list.map((d) => {
+                      const fav = favs.indexOf(d.id) >= 0;
+                      return (
+                        <div key={d.id} className="listrow" role="button" tabIndex={0}
+                          onClick={() => { setBankItem(d); setSheet("bankitem"); }}>
+                          <span className="lvl" style={{ background: LEVEL_COLOR[d.level] }}>{d.level}</span>
+                          <span className="rowtext">{d.name}
+                            <em>{(SKILLS.find((sk) => sk.id === d.skill) || {}).label} · {(LEVELS.find((l) => l.id === d.level) || {}).label} · {d.ages}</em>
+                          </span>
+                          <button className={"starbtn" + (fav ? " on" : "")} aria-label="Favourite"
+                            onClick={(e) => { e.stopPropagation(); toggleFav(d.id); }}><Star size={17} /></button>
+                          <ChevronRight size={16} className="chev" />
+                        </div>
+                      );
+                    })}
+                  </>
+                );
+              })()}
+            </>
+          )}
+
+          {tab === "mine" && (
             <>
               <Row icon={<Plus size={18} />} label="Start a new drill" onClick={() => {
                 const objs = [];
                 setHistory((h) => [...h, drill]);
                 setDrill({ id: uid(), name: "New drill", pitch: drill.pitch, objects: objs, steps: blankSteps(objs) });
-                setStep(0); setT(0); tRef.current = 0; setSel(null); setSheet(null);
+                setStep(0); setT(0); tRef.current = 0; setSel(null); setScreen("designer");
               }} />
               <Row icon={<Check size={18} />} label={`Save “${drill.name}”`} onClick={saveDrill} />
               {library.length > 4 && (
@@ -3406,91 +3793,50 @@ function DrillDesigner() {
                 ))}
             </>
           )}
+        </Screen>
+      )}
 
-          {tab === "bank" && GATE.protect === "bank" && !unlocked && (
-            <Gate inline onUnlock={() => setUnlocked(true)} />
-          )}
+      {screen === "sessions" && (
+        <Screen title="Sessions" onBack={() => setScreen("home")}>
+          <Row icon={<Sparkle />} label="Build me a session" sub="Answer five questions, get a full plan"
+            onClick={() => setSheet("builder")} />
+          <Row icon={<Plus size={18} />} label="Start an empty session" onClick={() => {
+            const ns = { id: uid(), name: "Sunday session", date: "", items: [] };
+            saveSessions([ns, ...sessions]);
+            setEditSession(ns); setSheet("session");
+          }} />
+          {sessions.length === 0 ? <p className="hint">Group drills into a session, set the minutes, then export one plan sheet or run it pitchside.</p> :
+            sessions.map((ss) => (
+              <Row key={ss.id} icon={<ClipboardList size={18} />} label={ss.name}
+                sub={`${(ss.items || []).length} drills · ${(ss.items || []).reduce((a, b) => a + (b.minutes || 0), 0)} min${ss.date ? " · " + ss.date : ""}`}
+                onClick={() => { setEditSession(ss); setSheet("session"); }} />
+            ))}
+        </Screen>
+      )}
 
-          {tab === "bank" && (GATE.protect !== "bank" || unlocked) && (
-            <>
-              <input className="searchfield" value={query} placeholder={`Search ${BANK.length} drills`}
-                onChange={(e) => setQuery(e.target.value)} />
-              <div className="filters">
-                <div className="chips">
-                  <button className={"chip star" + (bankFilter.fav ? " on" : "")}
-                    onClick={() => setBankFilter({ ...bankFilter, fav: !bankFilter.fav })}>
-                    <Star size={13} /> Favourites
-                  </button>
-                  <button className={"chip" + (bankFilter.skill === "all" ? " on" : "")} onClick={() => setBankFilter({ ...bankFilter, skill: "all" })}>All skills</button>
-                  {SKILLS.map((s) => (
-                    <button key={s.id} className={"chip" + (bankFilter.skill === s.id ? " on" : "")}
-                      onClick={() => setBankFilter({ ...bankFilter, skill: s.id })}>{s.label}</button>
-                  ))}
-                </div>
-                <div className="chips">
-                  <button className={"chip" + (bankFilter.level === "all" ? " on" : "")} onClick={() => setBankFilter({ ...bankFilter, level: "all" })}>Any level</button>
-                  {LEVELS.map((l) => (
-                    <button key={l.id} className={"chip" + (bankFilter.level === l.id ? " on" : "")}
-                      onClick={() => setBankFilter({ ...bankFilter, level: l.id })}>{l.label}</button>
-                  ))}
-                </div>
-                <div className="chips">
-                  <button className={"chip" + (bankFilter.age === "all" ? " on" : "")} onClick={() => setBankFilter({ ...bankFilter, age: "all" })}>Any age</button>
-                  {AGES.map((a) => (
-                    <button key={a} className={"chip" + (bankFilter.age === a ? " on" : "")}
-                      onClick={() => setBankFilter({ ...bankFilter, age: a })}>{a}</button>
-                  ))}
-                </div>
-              </div>
-              {(() => {
-                const list = BANK.filter((d) =>
-                  (bankFilter.skill === "all" || d.skill === bankFilter.skill) &&
-                  (bankFilter.level === "all" || d.level === bankFilter.level) &&
-                  (bankFilter.age === "all" || d.ages === bankFilter.age) &&
-                  (!bankFilter.fav || favs.indexOf(d.id) >= 0) &&
-                  bankMatches(d, query)
-                ).sort((a, b) => a.level - b.level);
-                if (!list.length) return <p className="hint">Nothing matches — try clearing the search or widening a filter.</p>;
-                return list.map((d) => {
-                  const fav = favs.indexOf(d.id) >= 0;
-                  return (
-                    <div key={d.id} className="listrow" role="button" tabIndex={0}
-                      onClick={() => { setBankItem(d); setSheet("bankitem"); }}>
-                      <span className="lvl" style={{ background: LEVEL_COLOR[d.level] }}>{d.level}</span>
-                      <span className="rowtext">{d.name}
-                        <em>{(SKILLS.find((s) => s.id === d.skill) || {}).label} · {(LEVELS.find((l) => l.id === d.level) || {}).label} · {d.ages}</em>
-                      </span>
-                      <button className={"starbtn" + (fav ? " on" : "")} aria-label="Favourite"
-                        onClick={(e) => { e.stopPropagation(); toggleFav(d.id); }}><Star size={17} /></button>
-                      <ChevronRight size={16} className="chev" />
-                    </div>
-                  );
-                });
-              })()}
-              <p className="hint">Levels run easy to hard within each skill — work down a column as the group improves.</p>
-            </>
-          )}
-
-          {tab === "sessions" && (
-            <>
-              <Row icon={<Plus size={18} />} label="New session" onClick={() => {
-                const s = { id: uid(), name: "Sunday session", date: "", items: [] };
-                saveSessions([s, ...sessions]);
-                setEditSession(s); setSheet("session");
-              }} />
-              {sessions.length === 0 ? <p className="hint">Group saved drills into a session, set the minutes, then export one plan sheet.</p> :
-                sessions.map((s) => (
-                  <Row key={s.id} icon={<ClipboardList size={18} />} label={s.name}
-                    sub={`${(s.items || []).length} drills · ${(s.items || []).reduce((a, b) => a + (b.minutes || 0), 0)} min${s.date ? " · " + s.date : ""}`}
-                    onClick={() => { setEditSession(s); setSheet("session"); }} />
-                ))}
-            </>
-          )}
-        </Sheet>
+      {screen === "tactics" && (
+        <Screen title="Tactics" onBack={() => setScreen("home")}
+          head={
+            <div className="chips">
+              {FORMATS.map((f) => (
+                <button key={f} className={"chip" + (format === f ? " on" : "")} onClick={() => setFormat(f)}>{f}</button>
+              ))}
+            </div>
+          }>
+          <p className="hint">Shapes for {format}, with what every position is actually responsible for. Tap a player in any formation to see their job.</p>
+          {FORMATIONS.filter((f) => f.format === format).map((f) => (
+            <div key={f.id} className="listrow" role="button" tabIndex={0}
+              onClick={() => { setFormation(f); setSheet("formation"); }}>
+              <span className="mini">{f.objects.length}</span>
+              <span className="rowtext">{f.name}<em>{f.ages} · {f.summary.split(".")[0]}</em></span>
+              <ChevronRight size={16} className="chev" />
+            </div>
+          ))}
+        </Screen>
       )}
 
       {sheet === "bankitem" && bankItem && (
-        <Sheet title={bankItem.name} onClose={() => { setBankItem(null); setSheet("library"); }}>
+        <Sheet title={bankItem.name} onClose={() => { setBankItem(null); setSheet(null); }}>
           <div className="help">
             <div className="meta">
               <span className="lvl" style={{ background: LEVEL_COLOR[bankItem.level] }}>{bankItem.level}</span>
@@ -3502,7 +3848,9 @@ function DrillDesigner() {
               <h3>Set up</h3>
               <ul>
                 <li>{bankItem.setup}</li>
-                <li><b>Players:</b> {bankItem.players}</li>
+                <li><b>Players:</b> {bankItem.players}
+                  {bankItem.min ? ` — works from ${bankItem.min}${bankItem.max < 30 ? ` to ${bankItem.max}` : " upwards"}` : ""}</li>
+                {bankItem.atNumbers ? <li><b>Short of numbers?</b> {bankItem.atNumbers}</li> : null}
                 <li><b>Kit:</b> {bankItem.kit}</li>
               </ul>
             </section>
@@ -3526,7 +3874,7 @@ function DrillDesigner() {
       )}
 
       {sheet === "session" && editSession && (
-        <Sheet title="Session" onClose={() => { setSheet("library"); setTab("sessions"); setPicking(false); }}>
+        <Sheet title="Session" onClose={() => { setSheet(null); setPicking(false); }}>
           <input className="field big" value={editSession.name} placeholder="Session name"
             onChange={(e) => updateSession({ name: e.target.value })} />
           <input className="field" value={editSession.date} placeholder="When (e.g. Sun 2 Aug, 10am)"
@@ -3589,8 +3937,90 @@ function DrillDesigner() {
             onClick={() => exportSession(editSession)} />
           <Row icon={<Trash2 size={18} />} label="Delete session" danger onClick={() => {
             saveSessions(sessions.filter((s) => s.id !== editSession.id));
-            setEditSession(null); setSheet("library"); setTab("sessions");
+            setEditSession(null); setSheet(null);
           }} />
+        </Sheet>
+      )}
+
+      {sheet === "builder" && (
+        <Sheet title="Build a session" onClose={() => setSheet(null)}>
+          <p className="hint">Answer these and Rondo will pick the drills, set the timings and save it as a session you can edit or run.</p>
+
+          <div className="qcard">
+            <span className="qlabel">How long is the session?</span>
+            <div className="chips">
+              {[45, 60, 75, 90].map((m) => (
+                <button key={m} className={"chip" + (plan.mins === m ? " on" : "")}
+                  onClick={() => setPlan({ ...plan, mins: m })}>{m} min</button>
+              ))}
+            </div>
+          </div>
+
+          <div className="qcard">
+            <span className="qlabel">How many kids?</span>
+            <div className="sliderow">
+              <input className="qslider" type="range" min={4} max={24} step={1} value={plan.kids}
+                onChange={(e) => setPlan({ ...plan, kids: +e.target.value })} />
+              <b>{plan.kids}</b>
+            </div>
+          </div>
+
+          <div className="qcard">
+            <span className="qlabel">What are we working on?</span>
+            <div className="chips">
+              {SKILLS.filter((sk) => ["passing", "firsttouch", "dribbling", "shooting", "defending"].indexOf(sk.id) >= 0).map((sk) => (
+                <button key={sk.id} className={"chip" + (plan.focus === sk.id ? " on" : "")}
+                  onClick={() => setPlan({ ...plan, focus: sk.id })}>{sk.label}</button>
+              ))}
+              <button className={"chip" + (plan.focus === "mixed" ? " on" : "")}
+                onClick={() => setPlan({ ...plan, focus: "mixed" })}>A bit of everything</button>
+            </div>
+          </div>
+
+          <div className="qcard">
+            <span className="qlabel">How many drills?</span>
+            <div className="sliderow">
+              <input className="qslider" type="range" min={1} max={5} step={1} value={plan.count}
+                onChange={(e) => setPlan({ ...plan, count: +e.target.value })} />
+              <b>{plan.count}</b>
+            </div>
+          </div>
+
+          <div className="qcard">
+            <span className="qlabel">Finish with a game?</span>
+            <div className="chips">
+              <button className={"chip" + (plan.games ? " on" : "")} onClick={() => setPlan({ ...plan, games: true })}>Yes</button>
+              <button className={"chip" + (!plan.games ? " on" : "")} onClick={() => setPlan({ ...plan, games: false })}>No</button>
+            </div>
+            {plan.games && (
+              <div className="sliderow">
+                <input className="qslider" type="range" min={10} max={30} step={5} value={plan.gameMins}
+                  onChange={(e) => setPlan({ ...plan, gameMins: +e.target.value })} />
+                <b>{plan.gameMins} min</b>
+              </div>
+            )}
+          </div>
+
+          <Row icon={<Sparkle />} label="Build the session"
+            sub={`${plan.mins} minutes · ${plan.kids} players · ${plan.count} drill${plan.count > 1 ? "s" : ""}${plan.games ? " + a game" : ""}`}
+            onClick={buildPlan} />
+        </Sheet>
+      )}
+
+      {sheet === "formation" && formation && (
+        <Sheet title={formation.name} onClose={() => { setFormation(null); setSheet(null); }}>
+          <FormationView f={formation} />
+          <div className="help">
+            <section>
+              <h3>The shape</h3>
+              <ul>
+                <li>{formation.summary}</li>
+                {formation.points.map((pt, i) => <li key={i}>{pt}</li>)}
+              </ul>
+            </section>
+          </div>
+          <Row icon={<Play size={18} />} label="Open in the designer"
+            sub="Move players, add runs, and animate it" onClick={() => openDrill(formation, true)} />
         </Sheet>
       )}
 
@@ -3668,7 +4098,7 @@ function RondoMark() {
   );
 }
 
-function Gate({ onUnlock, admin, inline }) {
+function Gate({ onUnlock, admin, inline, unlocked, onSkip }) {
   const [code, setCode] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -3718,9 +4148,15 @@ function Gate({ onUnlock, admin, inline }) {
       <div className="lockinner">
         <RondoMark />
         <h1 className="wordmark">Rondo</h1>
-        <p className="tagline">Design, simulate and share football drills</p>
-        <div className={"gatecard" + (err ? " shake" : "")}>{form}</div>
-        <p className="lockfoot">Ask your club for an access code</p>
+        <p className="tagline">{unlocked ? "Access codes" : "Design, simulate and share football drills"}</p>
+        {unlocked ? (
+          <button className="backbtn" onClick={onSkip}>Back to the app</button>
+        ) : (
+          <>
+            <div className={"gatecard" + (err ? " shake" : "")}>{form}</div>
+            <p className="lockfoot">Ask your club for an access code</p>
+          </>
+        )}
       </div>
 
       {admin && (
@@ -3912,6 +4348,149 @@ const ChevronLeftIcon = () => (
   </span>
 );
 
+/* ------------------------------------------------------------ home & nav */
+
+function Screen({ title, onBack, head, children }) {
+  return (
+    <div className="screen">
+      <header className="screenbar">
+        <button className="ic back" onClick={onBack} aria-label="Home"><ChevronRight size={18} /></button>
+        <h2>{title}</h2>
+      </header>
+      {head ? <div className="screenhead">{head}</div> : null}
+      <div className="screenbody">{children}</div>
+    </div>
+  );
+}
+
+const HOME_TILES = [
+  {
+    id: "designer", title: "Drill designer", sub: "Build and simulate your own",
+    art: (
+      <svg viewBox="0 0 44 34" aria-hidden="true">
+        <rect x="1" y="1" width="42" height="32" rx="4" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+        <circle cx="12" cy="24" r="4" fill="#0A84FF" />
+        <circle cx="30" cy="11" r="4" fill="#0A84FF" />
+        <path d="M16,22 L26,13" stroke="#fff" strokeWidth="1.6" strokeDasharray="3 2.4" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    id: "drills", title: "Drill library", sub: "Ready-made, filtered by skill and age",
+    art: (
+      <svg viewBox="0 0 44 34" aria-hidden="true">
+        <rect x="3" y="4" width="16" height="11" rx="2.5" fill="rgba(255,255,255,0.16)" />
+        <rect x="24" y="4" width="16" height="11" rx="2.5" fill="rgba(255,255,255,0.16)" />
+        <rect x="3" y="19" width="16" height="11" rx="2.5" fill="rgba(255,255,255,0.16)" />
+        <rect x="24" y="19" width="16" height="11" rx="2.5" fill="#30C463" />
+      </svg>
+    ),
+  },
+  {
+    id: "sessions", title: "Session builder", sub: "Group drills with timings",
+    art: (
+      <svg viewBox="0 0 44 34" aria-hidden="true">
+        <rect x="6" y="2" width="32" height="30" rx="4" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+        <rect x="11" y="9" width="14" height="2.6" rx="1.3" fill="#fff" opacity="0.85" />
+        <rect x="11" y="16" width="20" height="2.6" rx="1.3" fill="#fff" opacity="0.55" />
+        <rect x="11" y="23" width="10" height="2.6" rx="1.3" fill="#fff" opacity="0.55" />
+        <circle cx="30" cy="10.3" r="2.6" fill="#FF9F0A" />
+      </svg>
+    ),
+  },
+  {
+    id: "tactics", title: "Tactics", sub: "Formations from 4v4 to 11v11",
+    art: (
+      <svg viewBox="0 0 44 34" aria-hidden="true">
+        <rect x="1" y="1" width="42" height="32" rx="4" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+        <line x1="1" y1="17" x2="43" y2="17" stroke="rgba(255,255,255,0.25)" strokeWidth="1" />
+        <circle cx="22" cy="28" r="3" fill="#FFD60A" />
+        <circle cx="10" cy="21" r="3" fill="#0A84FF" />
+        <circle cx="34" cy="21" r="3" fill="#0A84FF" />
+        <circle cx="16" cy="10" r="3" fill="#0A84FF" />
+        <circle cx="28" cy="10" r="3" fill="#0A84FF" />
+      </svg>
+    ),
+  },
+];
+
+function Home({ drill, counts, onGo, onHelp, onLock }) {
+  const meta = {
+    designer: drill && drill.name ? drill.name : "Untitled drill",
+    drills: `${counts.bank} drills${counts.mine ? ` · ${counts.mine} of yours` : ""}`,
+    sessions: counts.sessions ? `${counts.sessions} saved` : "None yet",
+    tactics: `${counts.forms} shapes`,
+  };
+  return (
+    <div className="home">
+      <div className="lockbg" />
+      <div className="homeinner">
+        <header className="homehead">
+          <h1 className="wordmark small">Rondo</h1>
+          <p className="tagline">What are we working on?</p>
+        </header>
+
+        <div className="tiles">
+          {HOME_TILES.map((t) => (
+            <button key={t.id} className="tile" onClick={() => onGo(t.id)}>
+              <span className="tileart">{t.art}</span>
+              <span className="tiletitle">{t.title}</span>
+              <span className="tilesub">{t.sub}</span>
+              <span className="tilemeta">{meta[t.id]}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="homefoot">
+          <button className="runlink" onClick={onHelp}>How it works</button>
+          {onLock ? <button className="runlink" onClick={onLock}>Lock this device</button> : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FormationView({ f }) {
+  const [sel, setSel] = useState(null);
+  const p = PITCHES[f.pitch] || PITCHES.half;
+  const positions = f.steps[0].positions;
+  const role = sel ? ROLES[(f.objects.find((o) => o.id === sel) || {}).role] : null;
+  return (
+    <>
+      <div className="formwrap">
+        <svg viewBox={`-3 -3 ${p.w + 6} ${p.h + 6}`} className="formpitch"
+          onClick={(e) => {
+            const g = e.target.closest && e.target.closest("[data-oid]");
+            setSel(g ? g.getAttribute("data-oid") : null);
+          }}>
+          <Turf p={p} />
+          <Markings p={p} />
+          {f.objects.map((o) => {
+            const pos = positions[o.id];
+            if (!pos) return null;
+            return <Piece key={o.id} o={o} pos={pos} selected={o.id === sel} playing={false} carrying={false} />;
+          })}
+        </svg>
+      </div>
+      <div className="rolecard">
+        {role ? (
+          <><h3>{role[0]}</h3><p>{role[1]}</p></>
+        ) : (
+          <p className="muted">Tap any player to see what that position is responsible for.</p>
+        )}
+      </div>
+    </>
+  );
+}
+
+const Sparkle = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" />
+    <path d="M18.6 15.6l.6 1.6 1.6.6-1.6.6-.6 1.6-.6-1.6-1.6-.6 1.6-.6z" />
+  </svg>
+);
+
 function Row({ icon, badge, label, sub, onClick, danger }) {
   return (
     <button className={"listrow" + (danger ? " danger" : "")} onClick={onClick}>
@@ -4057,7 +4636,7 @@ input { font: inherit; }
 .goal { width: 26px; height: 10px; border: 2px solid #6C6C70; border-bottom-color: transparent; border-radius: 3px 3px 0 0; display: block; }
 .note { font-size: 16px; font-weight: 700; color: #3C3C43; }
 
-.scrim { position: absolute; inset: 0; background: rgba(0,0,0,0.35); z-index: 20; display: flex; align-items: flex-end; animation: fade .2s ease-out; }
+.scrim { position: absolute; inset: 0; background: rgba(0,0,0,0.35); z-index: 45; display: flex; align-items: flex-end; animation: fade .2s ease-out; }
 @keyframes fade { from { opacity: 0 } to { opacity: 1 } }
 .sheet { width: 100%; max-height: 86%; background: #F2F2F7; border-radius: 18px 18px 0 0; padding: 8px 14px calc(18px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; animation: slide .26s cubic-bezier(0.32,0.72,0,1); }
 @keyframes slide { from { transform: translateY(100%) } to { transform: none } }
@@ -4132,6 +4711,10 @@ input { font: inherit; }
 .gatebtn:active { transform: scale(0.95); }
 .gatebtn:disabled { opacity: 0.35; box-shadow: none; }
 .gateerr { margin: 10px 2px 2px; font-size: 13px; color: #FF9F9F; text-align: center; }
+.backbtn {
+  margin-top: 20px; padding: 12px 22px; border-radius: 13px; font-size: 15px; font-weight: 600;
+  background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.16);
+}
 .adminbox {
   position: relative; z-index: 1; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
   border-radius: 16px; padding: 16px; max-width: 400px; width: 100%; backdrop-filter: blur(10px);
@@ -4200,6 +4783,69 @@ input { font: inherit; }
 .runlink.strong { color: #6FD98F; }
 .runlink:disabled { opacity: 0.3; }
 
+/* --------------------------------------------------------- home & nav */
+.home {
+  position: absolute; inset: 0; z-index: 30; color: #fff; overflow-y: auto;
+  background: radial-gradient(120% 80% at 50% 0%, #0E3524 0%, #071B12 68%, #04100A 100%);
+}
+.homeinner {
+  position: relative; z-index: 1; min-height: 100%; display: flex; flex-direction: column;
+  padding: calc(26px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom));
+  max-width: 560px; margin: 0 auto;
+}
+.homehead { text-align: center; margin-bottom: 22px; animation: risein .5s cubic-bezier(0.22,1,0.36,1) both; }
+.wordmark.small { font-size: 34px; }
+.homehead .tagline { margin-top: 6px; }
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.tile {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left;
+  padding: 14px; border-radius: 20px; background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.13); backdrop-filter: blur(14px); color: #fff;
+  box-shadow: 0 14px 34px rgba(0,0,0,0.28); transition: transform .14s, background .14s;
+  animation: risein .5s cubic-bezier(0.22,1,0.36,1) both;
+}
+.tile:nth-child(2) { animation-delay: .05s }
+.tile:nth-child(3) { animation-delay: .1s }
+.tile:nth-child(4) { animation-delay: .15s }
+.tile:active { transform: scale(0.97); background: rgba(255,255,255,0.11); }
+.tileart { width: 100%; margin-bottom: 8px; }
+.tileart svg { width: 100%; height: auto; display: block; }
+.tiletitle { font-size: 15px; font-weight: 700; letter-spacing: -0.3px; }
+.tilesub { font-size: 11.5px; line-height: 1.35; color: rgba(255,255,255,0.55); }
+.tilemeta { margin-top: 6px; font-size: 11px; font-weight: 600; color: #6FD98F; }
+.homefoot { margin-top: auto; padding-top: 26px; display: flex; justify-content: center; gap: 20px; }
+
+.screen { position: absolute; inset: 0; z-index: 25; background: #F2F2F7; display: flex; flex-direction: column; }
+.screenbar {
+  display: flex; align-items: center; gap: 8px; flex: 0 0 auto;
+  padding: calc(10px + env(safe-area-inset-top)) 12px 10px;
+  background: rgba(255,255,255,0.86); backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 0.5px solid rgba(0,0,0,0.12);
+}
+.screenbar h2 { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.4px; }
+.ic.back svg { transform: rotate(180deg); }
+.screenhead { padding: 10px 14px 0; background: #F2F2F7; flex: 0 0 auto; }
+.screenbody {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;
+  padding: 12px 14px calc(20px + env(safe-area-inset-bottom));
+}
+
+.formwrap { background: #0E3524; border-radius: 14px; padding: 8px; }
+.formpitch { width: 100%; max-height: 46vh; display: block; }
+.rolecard { background: #fff; border-radius: 13px; padding: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.rolecard h3 { margin: 0 0 6px; font-size: 15px; font-weight: 700; }
+.rolecard p { margin: 0; font-size: 13.5px; line-height: 1.45; color: #3C3C43; }
+.rolecard .muted { color: #8E8E93; }
+
+.qcard {
+  background: #fff; border-radius: 13px; padding: 13px 14px; display: flex; flex-direction: column; gap: 9px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+.qlabel { font-size: 14px; font-weight: 600; color: #1C1C1E; }
+.sliderow { display: flex; align-items: center; gap: 12px; }
+.qslider { flex: 1; min-width: 0; accent-color: #007AFF; height: 26px; }
+.sliderow b { min-width: 62px; text-align: right; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
 .searchfield {
   width: 100%; border: none; outline: none; background: #fff; border-radius: 11px;
   padding: 11px 14px; font-size: 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); margin-bottom: 2px;
@@ -4234,14 +4880,14 @@ input { font: inherit; }
 .minstep b { min-width: 34px; text-align: center; font-weight: 600; }
 .sessactions { display: flex; gap: 6px; justify-content: flex-end; }
 
-.busy { position: absolute; inset: 0; background: rgba(0,0,0,0.4); z-index: 40; display: grid; place-items: center; }
+.busy { position: absolute; inset: 0; background: rgba(0,0,0,0.4); z-index: 55; display: grid; place-items: center; }
 .busycard { background: rgba(28,28,30,0.95); color: #fff; border-radius: 16px; padding: 20px 26px; display: flex; flex-direction: column; align-items: center; gap: 12px; font-size: 14px; min-width: 190px; }
 .spinner { width: 26px; height: 26px; border-radius: 13px; border: 2.5px solid rgba(255,255,255,0.25); border-top-color: #fff; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg) } }
 .track { width: 150px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.2); overflow: hidden; }
 .track i { display: block; height: 100%; background: #0A84FF; transition: width .15s linear; }
 
-.toast { position: absolute; left: 50%; bottom: 100px; transform: translateX(-50%); background: rgba(28,28,30,0.92); color: #fff; padding: 9px 15px; border-radius: 20px; font-size: 13px; z-index: 50; animation: fade .18s ease-out; backdrop-filter: blur(8px); max-width: 86%; text-align: center; }
+.toast { position: absolute; left: 50%; bottom: 100px; transform: translateX(-50%); background: rgba(28,28,30,0.92); color: #fff; padding: 9px 15px; border-radius: 20px; font-size: 13px; z-index: 60; animation: fade .18s ease-out; backdrop-filter: blur(8px); max-width: 86%; text-align: center; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
 `;
 
