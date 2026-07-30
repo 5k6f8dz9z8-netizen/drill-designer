@@ -95,6 +95,7 @@
 
 
 
+
 /* ---------------------------------------------------- standalone runtime */
 const { useState, useRef, useEffect, useMemo, useCallback } = React;
 
@@ -362,7 +363,7 @@ const GATE = {
   protect: "app",
   salt: "drill-designer-2026",
   codes: [
-    { label: "Default — change this", hash: "ae478e38a0fbbac5457a3bcb5d482c4c163cf0835b9cc6e14d6bba9a41b65a7d" },
+    { label: "Coaches", hash: "eb982af9db2df9c2078829104348a418d7ef07f133890729a53fbd765c09c2b2" },
   ],
 };
 
@@ -4868,13 +4869,13 @@ function Gate({ onUnlock, admin, inline, unlocked, onSkip }) {
       {admin && (
         <div className="adminbox">
           <h3>Make an access code</h3>
-          <p>Type a code, then paste the line below into the <b>GATE.codes</b> list in index.html. The code itself is never stored in the file.</p>
+          <p>Type a code, then paste the line below into the <b>GATE.codes</b> list in index.html. Only the scrambled version is stored — rename the label to whoever you gave it to.</p>
           <div className="gateform">
             <input className="gateinput" value={newCode} placeholder="e.g. larkhall-2026"
               onChange={(e) => setNewCode(e.target.value)} />
             <button className="gatebtn" onClick={async () => {
               if (!newCode.trim()) return;
-              try { setMade({ code: newCode.trim().toLowerCase(), hash: await gateKey(newCode) }); }
+              try { setMade({ code: "code " + (GATE.codes.length + 1), hash: await gateKey(newCode) }); }
               catch (e) { setMade(null); }
             }}>Make</button>
           </div>
