@@ -96,6 +96,8 @@
 
 
 
+
+
 /* ---------------------------------------------------- standalone runtime */
 const { useState, useRef, useEffect, useMemo, useCallback } = React;
 
@@ -362,10 +364,21 @@ function propagateCarry(next, ballId, from, val) {
 const GATE = {
   protect: "app",
   salt: "drill-designer-2026",
+  /* One code per person. Delete a line to cut that person off; expires is
+     optional and the code stops working at the end of that day. */
   codes: [
-    { label: "Coaches", hash: "eb982af9db2df9c2078829104348a418d7ef07f133890729a53fbd765c09c2b2" },
+    { label: "Christopher", hash: "4641f476d80feb981cb2fd33547adc4130410e698075a5336243965596ad8306", admin: true },
+    { label: "Arron", hash: "572a61a3df02ec61ea71622cd372091dea4c764fc227c08be144c7cdf7bce2e1", expires: "2026-08-31" },
+    { label: "Davie", hash: "ea2ee89f9ab4fbc1a7fe2fc18ee2fe5ab66cbef953f6bcf1f25806b8f9b90ae0", expires: "2026-08-31" },
+    { label: "Greg", hash: "6dae9fb491e54ad08a14a3d0ca4598165b4db7db77dead6782381aaee0bb7e1f", expires: "2026-08-31" },
+    { label: "Chris", hash: "8e7d773de92c9bba4a631ad63c1a2c13a248f47b8c5b65fbb2b8b3135507eab0", expires: "2026-08-31" },
+    { label: "Jenna", hash: "775320c46c36f3714fe7a1cc4c617c1913ea230b7cf2367e88701acaad7752fe", expires: "2026-08-31" },
+    { label: "Steven", hash: "5a8a6df6e94aaf6ea2e8dfd57b0a61aa008c01fbbcb24dadf22ea38e1c82f7a4", expires: "2026-08-31" },
   ],
 };
+
+const codeLive = (c) => !c.expires || Date.now() <= Date.parse(c.expires + "T23:59:59");
+const codeEnds = (c) => new Date(c.expires + "T12:00:00").toLocaleDateString(undefined, { day: "numeric", month: "long" });
 
 async function sha256(text) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
@@ -374,11 +387,12 @@ async function sha256(text) {
 const gateKey = (code) => sha256(GATE.salt + ":" + String(code).trim().toLowerCase());
 
 function storedAccess() {
-  if (GATE.protect === "off") return true;
+  if (GATE.protect === "off") return { label: "" };
   try {
     const v = localStorage.getItem("dd-access");
-    return !!v && GATE.codes.some((c) => c.hash === v);
-  } catch (e) { return false; }
+    const hit = GATE.codes.find((c) => c.hash === v);
+    return hit && codeLive(hit) ? hit : null;
+  } catch (e) { return null; }
 }
 
 /* ---------------------------------------------------------- drill bank */
@@ -3415,8 +3429,10 @@ function DrillDesigner() {
   const [bankItem, setBankItem] = useState(null);
   const [picking, setPicking] = useState(false);
   const [busy, setBusy] = useState(null);
-  const [unlocked, setUnlocked] = useState(storedAccess);
-  const admin = typeof location !== "undefined" && /[?&]admin=1/.test(location.search || "");
+  const [access, setAccess] = useState(storedAccess);
+  const unlocked = !!access;
+  const wantsAdmin = typeof location !== "undefined" && /[?&]admin=1/.test(location.search || "");
+  const isAdmin = !!(access && access.admin);
 
   const stageRef = useRef(null);
   const svgRef = useRef(null);
@@ -4040,11 +4056,11 @@ function DrillDesigner() {
   };
 
   /* ------------------------------------------------------------ render */
-  if (admin || (GATE.protect === "app" && !unlocked)) {
+  if ((GATE.protect === "app" && !unlocked) || (wantsAdmin && isAdmin)) {
     return (
       <div className="app">
         <style>{CSS}</style>
-        <Gate admin={admin} unlocked={unlocked} onUnlock={() => setUnlocked(true)}
+        <Gate admin={isAdmin} unlocked={unlocked} onUnlock={(c) => setAccess(c)}
           onSkip={() => { history.replaceState(null, "", location.pathname); setRun(null); setSheet(null); }} />
       </div>
     );
@@ -4067,7 +4083,18 @@ function DrillDesigner() {
           </div>
         </header>
 
-        <div className="stage" ref={stageRef}>
+        <div className="subbar">
+        <button className="pill" onClick={() => {
+          const objs = [];
+          setHistory((h) => [...h, drill]);
+          setDrill({ id: uid(), name: "New drill", pitch: drill.pitch, objects: objs, steps: blankSteps(objs) });
+          setStep(0); setT(0); tRef.current = 0; setSel(null);
+        }}><Plus size={14} /> New</button>
+        <button className="pill" onClick={saveDrill}><Check size={14} /> Save</button>
+        <span className="subinfo">{drill.steps.length} phase{drill.steps.length > 1 ? "s" : ""} · {drill.objects.length} items</span>
+      </div>
+
+      <div className="stage" ref={stageRef}>
           <svg ref={svgRef} width="100%" height="100%" viewBox={`0 0 ${size.w} ${size.h}`}
             onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onWheel={onWheel}
             style={{ touchAction: "none", display: "block", background: SURROUND }}>
@@ -4310,11 +4337,14 @@ function DrillDesigner() {
               </ul>
             </section>
           </div>
+          {GATE.protect !== "off" && unlocked && access && access.label && (
+            <p className="hint">Signed in as {access.label}{access.expires ? ` · access runs to ${codeEnds(access)}` : ""}. Your code is personal to you.</p>
+          )}
           {GATE.protect !== "off" && unlocked && (
             <Row icon={<X size={18} />} label="Lock this device again" sub="You'll need the access code next time"
               onClick={() => {
                 try { localStorage.removeItem("dd-access"); } catch (e) { }
-                setUnlocked(GATE.protect !== "app");
+                setAccess(GATE.protect === "app" ? null : { label: "" });
                 setSheet(null);
                 flash("Locked");
               }} />
@@ -4341,7 +4371,7 @@ function DrillDesigner() {
           onHelp={() => setSheet("help")}
           onLock={GATE.protect === "off" ? null : () => {
             try { localStorage.removeItem("dd-access"); } catch (e) { }
-            setUnlocked(GATE.protect !== "app"); flash("Locked");
+            setAccess(GATE.protect === "app" ? null : { label: "" }); flash("Locked");
           }}
         />
       )}
@@ -4355,7 +4385,7 @@ function DrillDesigner() {
             </div>
           }>
           {tab !== "mine" && GATE.protect === "bank" && !unlocked && (
-            <Gate inline onUnlock={() => setUnlocked(true)} />
+            <Gate inline onUnlock={(c) => setAccess(c)} />
           )}
 
           {tab !== "mine" && (GATE.protect !== "bank" || unlocked) && (
@@ -4817,9 +4847,11 @@ function Gate({ onUnlock, admin, inline, unlocked, onSkip }) {
     setBusy(true); setErr("");
     try {
       const h = await gateKey(code);
-      if (GATE.codes.some((c) => c.hash === h)) {
+      const hit = GATE.codes.find((c) => c.hash === h);
+      if (hit && !codeLive(hit)) setErr(`That code ran out on ${codeEnds(hit)}`);
+      else if (hit) {
         try { localStorage.setItem("dd-access", h); } catch (e) { }
-        onUnlock();
+        onUnlock(hit);
       } else setErr("That code isn't right");
     } catch (e) {
       setErr("Access codes need the site served over https");
@@ -4866,10 +4898,10 @@ function Gate({ onUnlock, admin, inline, unlocked, onSkip }) {
         )}
       </div>
 
-      {admin && (
+      {admin && unlocked && (
         <div className="adminbox">
           <h3>Make an access code</h3>
-          <p>Type a code, then paste the line below into the <b>GATE.codes</b> list in index.html. Only the scrambled version is stored — rename the label to whoever you gave it to.</p>
+          <p>Type a code, then paste the line below into the <b>GATE.codes</b> list in index.html. Only the scrambled version is stored — rename the label to whoever you gave it to, and add <b>expires</b> if it should run out.</p>
           <div className="gateform">
             <input className="gateinput" value={newCode} placeholder="e.g. larkhall-2026"
               onChange={(e) => setNewCode(e.target.value)} />
@@ -5333,6 +5365,19 @@ input { font: inherit; }
 .ic.primary { background: #007AFF; color: #fff; }
 .ic.sm { width: 28px; height: 28px; border-radius: 14px; }
 .ic.danger { color: #FF3B30; }
+
+.subbar {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 8px; padding: 7px 12px;
+  background: rgba(255,255,255,0.78); backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 0.5px solid rgba(0,0,0,0.1); z-index: 5;
+}
+.pill {
+  display: inline-flex; align-items: center; gap: 5px; padding: 6px 13px; border-radius: 999px;
+  font-size: 13px; font-weight: 600; color: #007AFF; background: rgba(0,122,255,0.1);
+  flex: 0 0 auto; transition: transform .12s;
+}
+.pill:active { transform: scale(0.94); }
+.subinfo { margin-left: auto; font-size: 11.5px; color: #8E8E93; white-space: nowrap; }
 
 .stage { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; }
 .float { position: absolute; top: 12px; right: 12px; display: flex; flex-direction: column; gap: 8px; }
