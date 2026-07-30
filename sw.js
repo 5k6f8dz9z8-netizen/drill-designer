@@ -1,6 +1,6 @@
 /* Rondo service worker.
    Bump CACHE whenever you change index.html so phones pick up the new version. */
-const CACHE = "rondo-v14";
+const CACHE = "rondo-v15";
 const CORE = [
   "./",
   "./index.html",

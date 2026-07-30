@@ -98,6 +98,7 @@
 
 
 
+
 /* ---------------------------------------------------- standalone runtime */
 const { useState, useRef, useEffect, useMemo, useCallback } = React;
 
@@ -148,6 +149,8 @@ const Link2Off = (p) => <Svg {...p}><path d="M9 17H7A5 5 0 017 7h2M15 7h2a5 5 0 
 const Info = (p) => <Svg {...p}><circle cx="12" cy="12" r="9" /><path d="M12 16v-4M12 8h.01" /></Svg>;
 const Star = (p) => <Svg {...p}><path d="M12 2.6l2.9 6 6.5.9-4.7 4.6 1.1 6.5-5.8-3.1-5.8 3.1 1.1-6.5L2.6 9.5l6.5-.9z" /></Svg>;
 const Timer = (p) => <Svg {...p}><path d="M10 2h4M12 14l2.5-2.5" /><circle cx="12" cy="14" r="8" /></Svg>;
+const Lock = (p) => <Svg {...p}><rect x="4" y="10.5" width="16" height="10.5" rx="2.5" /><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" /></Svg>;
+const Unlock = (p) => <Svg {...p}><rect x="4" y="10.5" width="16" height="10.5" rx="2.5" /><path d="M8 10.5V7a4 4 0 0 1 7.6-1.6" /></Svg>;
 
 /* ---------------------------------------------------------------- tokens */
 
@@ -3420,6 +3423,7 @@ function DrillDesigner() {
   const [editSession, setEditSession] = useState(null);
   const [bankFilter, setBankFilter] = useState({ skill: "all", level: "all", age: "all", fav: false });
   const [query, setQuery] = useState("");
+  const [locked, setLocked] = useState(true);
   const [plan, setPlan] = useState({ mins: 60, kids: 10, focuses: ["passing"], count: 3, warm: true, warmMins: 10, games: true, gameMins: 15 });
   const [screen, setScreen] = useState("home");
   const [formation, setFormation] = useState(null);
@@ -3494,13 +3498,17 @@ function DrillDesigner() {
     return () => ro.disconnect();
   }, [screen]);
 
+  /* Leaves room at the top for the pitch picker and floating buttons, so they
+     never sit over the playing area. */
   const fit = useCallback(() => {
-    const pad = 26;
-    const k = Math.min((size.w - pad * 2) / pitch.w, (size.h - pad * 2) / pitch.h);
-    setView({ k, x: (size.w - pitch.w * k) / 2, y: (size.h - pitch.h * k) / 2 });
+    const padX = 18, padTop = 58, padBottom = 18;
+    const k = Math.min((size.w - padX * 2) / pitch.w, (size.h - padTop - padBottom) / pitch.h);
+    setView({ k, x: (size.w - pitch.w * k) / 2, y: padTop + (size.h - padTop - padBottom - pitch.h * k) / 2 });
   }, [size, pitch]);
 
-  useEffect(() => { fit(); }, [fit, drill.pitch, drill.id]);
+  /* While the pitch is locked it stays fitted, so opening the item panel
+     shrinks the pitch rather than covering it. Unlocked, your view is yours. */
+  useEffect(() => { if (locked) fit(); }, [fit, locked, drill.pitch, drill.id]);
 
   const toWorld = (sx, sy) => ({ x: (sx - view.x) / view.k, y: (sy - view.y) / view.k });
 
@@ -3660,6 +3668,7 @@ function DrillDesigner() {
 
     if (ptrs.current.size === 2) {
       drag.current = null;
+      if (locked) return;
       const [a, b] = [...ptrs.current.values()];
       pinch.current = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, c: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, view };
       return;
@@ -3674,7 +3683,7 @@ function DrillDesigner() {
       drag.current = { id, dx: p.x - w.x, dy: p.y - w.y, moved: false };
     } else {
       setSel(null);
-      drag.current = { pan: true, sx: pt.x, sy: pt.y, view };
+      drag.current = locked ? null : { pan: true, sx: pt.x, sy: pt.y, view };
     }
   };
 
@@ -3734,6 +3743,7 @@ function DrillDesigner() {
 
   const onWheel = (e) => {
     e.preventDefault();
+    if (locked) return;
     const r = svgRef.current.getBoundingClientRect();
     const px = e.clientX - r.left, py = e.clientY - r.top;
     const k = clamp(view.k * (e.deltaY > 0 ? 0.92 : 1.08), 2, 60);
@@ -4114,7 +4124,11 @@ function DrillDesigner() {
           </svg>
 
           <div className="float">
-            <button className="chipbtn" onClick={fit} aria-label="Fit pitch"><Maximize2 size={16} /></button>
+            <button className={"chipbtn" + (locked ? " on" : "")} onClick={() => setLocked(!locked)}
+              aria-label={locked ? "Unlock the pitch" : "Lock the pitch"}>
+              {locked ? <Lock size={16} /> : <Unlock size={16} />}
+            </button>
+            <button className="chipbtn" onClick={() => { setLocked(false); fit(); }} aria-label="Fit pitch"><Maximize2 size={16} /></button>
             <button className={"chipbtn" + (allPaths ? " on" : "")} onClick={() => setAllPaths(!allPaths)} aria-label="Show all paths"><Route size={16} /></button>
           </div>
 
@@ -4125,6 +4139,9 @@ function DrillDesigner() {
             ))}
           </div>
 
+        </div>
+
+        <div className="dock">
           {selObj && !playing && (
             <div className="inspector">
               <div className="insphead">
@@ -4191,9 +4208,7 @@ function DrillDesigner() {
               )}
             </div>
           )}
-        </div>
 
-        <div className="dock">
           <div className="steps">
             {drill.steps.map((s, i) => (
               <button key={s.id} className={"stepchip" + (i === step ? " on" : "")}
@@ -4257,7 +4272,7 @@ function DrillDesigner() {
               <ul>
                 <li>Tap anything in the bottom palette to drop it on the pitch, then drag it into place.</li>
                 <li>Tap an item to recolour it by team or position, give a player a number, rotate, duplicate or delete.</li>
-                <li>Drag empty grass to pan, pinch or scroll to zoom, <b>⤢</b> refits the pitch. Choose the pitch size top left.</li>
+                <li>The pitch is <b>locked</b> by default so it cannot be dragged out of place while you work. Tap the padlock to unlock it if you want to pinch and zoom in on something.</li>
               </ul>
             </section>
 
@@ -5403,10 +5418,8 @@ input { font: inherit; }
 .tabs .seg.on { background: #fff; color: #1C1C1E; }
 
 .inspector {
-  position: absolute; left: 10px; right: 10px; bottom: 10px;
-  background: rgba(255,255,255,0.94); backdrop-filter: saturate(180%) blur(20px);
-  border-radius: 16px; padding: 10px 12px 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.24);
-  display: flex; flex-direction: column; gap: 9px; animation: rise .18s ease-out;
+  background: rgba(118,118,128,0.1); border-radius: 13px; padding: 9px 11px 10px;
+  display: flex; flex-direction: column; gap: 8px; animation: rise .16s ease-out;
 }
 @keyframes rise { from { transform: translateY(10px); opacity: 0 } to { transform: none; opacity: 1 } }
 .insphead { display: flex; align-items: center; justify-content: space-between; }
