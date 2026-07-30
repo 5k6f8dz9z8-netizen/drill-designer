@@ -93,6 +93,7 @@
 
 
 
+
 /* ---------------------------------------------------- standalone runtime */
 const { useState, useRef, useEffect, useMemo, useCallback } = React;
 
@@ -385,6 +386,7 @@ const SKILLS = [
   { id: "passing", label: "Passing" },
   { id: "firsttouch", label: "First touch" },
   { id: "dribbling", label: "Dribbling" },
+  { id: "skills", label: "Skill moves" },
   { id: "shooting", label: "Shooting" },
   { id: "defending", label: "Defending" },
   { id: "ssg", label: "Small-sided" },
@@ -2066,6 +2068,368 @@ const BANK = [
 
   /* ==================================================== set pieces */
   mkBank(
+    { id: "warm7", name: "Sharks and swimmers", skill: "warmup", level: 1, ages: "U6–U8", pitch: "grid",
+      players: "6 or more", kit: "4 cones",
+      setup: "A tag game with no ball. Two sharks in the middle, everyone else swims from one side to the other on the call. Caught and you become a shark.",
+      points: ["Look for the gap before you go, not once you're caught", "Change direction to get away — a straight line is easy to catch", "Sharks work together, don't both chase the same swimmer", "Two minutes is plenty, they'll be blowing"],
+      easier: "Wider area, one shark, and a safe spot in the middle.",
+      harder: "Narrow the area, or caught players freeze and become obstacles instead." },
+    { p1: pl(10, 25, CB, "1"), p2: pl(20, 25, CB, "2"), p3: pl(30, 25, CB, "3"),
+      d1: pl(15, 15, CR, "S"), d2: pl(27, 15, CR, "S"),
+      c1: cn(5, 5), c2: cn(35, 5), c3: cn(5, 27), c4: cn(35, 27) },
+    [
+      { n: "Swimmers on one side, two sharks in the middle" },
+      { n: "Find the gap before you set off", to: { p1: [8, 17], p2: [22, 17], p3: [33, 17], d1: [13, 16], d2: [29, 16] }, d: 1.1 },
+      { n: "Change direction — a straight line is easy to catch", to: { p1: [6, 8], p3: [34, 8], p2: [20, 15], d1: [11, 12], d2: [31, 12] }, d: 1 },
+      { n: "Caught? You're a shark now", to: { p2: [21, 14], d1: [19, 14] }, d: 0.7 },
+    ]
+  ),
+  mkBank(
+    { id: "warm8", name: "Stuck in the mud", skill: "warmup", level: 1, ages: "U6–U8", pitch: "grid",
+      players: "6 or more", kit: "4 cones",
+      setup: "One or two taggers. Get tagged and you stand still with your arms out until a free player crawls under your arm to release you. Nobody sits out.",
+      points: ["Free players have to be brave and go and rescue people", "Taggers guard the ones who are stuck", "Everybody keeps moving the whole time", "Perfect first game of the night — nobody is ever out"],
+      easier: "One tagger and a smaller area so rescues happen quickly.",
+      harder: "Three taggers, or make the rescue a high five instead of a crawl." },
+    { p1: pl(12, 10, CB, "1"), p2: pl(28, 10, CB, "2"), p3: pl(12, 22, CB, "3"), p4: pl(28, 22, CB, "4"),
+      d1: pl(20, 16, CR, "T"),
+      c1: cn(6, 5), c2: cn(34, 5), c3: cn(6, 26), c4: cn(34, 26) },
+    [
+      { n: "One tagger, everyone else running" },
+      { n: "Keep moving and stay away", to: { p1: [8, 16], p2: [32, 14], p3: [14, 26], p4: [30, 24], d1: [16, 18] }, d: 1.1 },
+      { n: "Tagged — arms out, feet stuck", to: { d1: [10, 17], p1: [8, 17] }, d: 0.8 },
+      { n: "Be brave — go and rescue them", to: { p3: [9, 20], p4: [24, 20], d1: [14, 18] }, d: 1 },
+    ]
+  ),
+  mkBank(
+    { id: "warm9", name: "Cross the river", skill: "warmup", level: 1, ages: "U6–U8", pitch: "grid",
+      players: "6 or more", kit: "6 cones",
+      setup: "A safe bank at each end and a river between them with one or two catchers. Everyone crosses on the call. A kinder version of bulldog — nobody gets flattened.",
+      points: ["Wait for the call, then commit — no dithering in the river", "Use the whole width, don't all run down the middle", "Catchers spread out to cover the space", "Tag on the back, no grabbing or pulling"],
+      easier: "One catcher and a wide river.",
+      harder: "Add catchers each round until only one swimmer is left." },
+    { p1: pl(8, 26, CB, "1"), p2: pl(16, 26, CB, "2"), p3: pl(24, 26, CB, "3"), p4: pl(32, 26, CB, "4"),
+      d1: pl(20, 15, CR, "C"),
+      c1: cn(4, 22), c2: cn(36, 22), c3: cn(4, 8), c4: cn(36, 8), c5: cn(4, 15), c6: cn(36, 15) },
+    [
+      { n: "Everyone on the bank, catcher in the river" },
+      { n: "Wait for the call, then commit", to: { p1: [6, 18], p2: [15, 18], p3: [25, 18], p4: [34, 18], d1: [20, 16] }, d: 1 },
+      { n: "Use the width — don't all go down the middle", to: { p1: [5, 9], p4: [35, 9], p2: [14, 15], p3: [26, 15], d1: [18, 15] }, d: 1 },
+      { n: "Safe on the far bank", to: { p2: [13, 8], p3: [27, 8], d1: [17, 13] }, d: 0.9 },
+    ]
+  ),
+  mkBank(
+    { id: "warm10", name: "Tail tag", skill: "warmup", level: 1, ages: "U6–U8", pitch: "grid",
+      players: "6 or more", kit: "1 bib per player, 4 cones",
+      setup: "Everyone tucks a bib into the back of their shorts as a tail. Sixty seconds to steal as many tails as you can while keeping your own. No ball, and they'll be exhausted.",
+      points: ["Twist and turn — protect your tail with your body", "Head up, you're being hunted while you hunt", "Count your tails at the end, then go again", "Sixty seconds is plenty, it's harder than it looks"],
+      easier: "Bigger area and ninety seconds so it's less frantic.",
+      harder: "Shrink the area, or lose your tail and you're out until the next round." },
+    { p1: pl(12, 11, CB, "1"), p2: pl(28, 11, CB, "2"), p3: pl(12, 21, CB, "3"), p4: pl(28, 21, CB, "4"),
+      c1: cn(6, 6), c2: cn(34, 6), c3: cn(6, 26), c4: cn(34, 26) },
+    [
+      { n: "A tail each, sixty seconds" },
+      { n: "Hunt and protect at the same time", to: { p1: [18, 14], p2: [24, 15], p3: [15, 18], p4: [26, 18] }, d: 1 },
+      { n: "Twist away — protect it with your body", to: { p1: [16, 17], p2: [27, 12], p3: [11, 15], p4: [30, 20] }, d: 0.9 },
+      { n: "Count your tails, then go again", to: { p1: [12, 11], p2: [28, 11], p3: [12, 21], p4: [28, 21] }, d: 1 },
+    ]
+  ),
+  mkBank(
+    { id: "warm11", name: "Rob the nest", skill: "warmup", level: 1, ages: "U6–U8", pitch: "grid",
+      players: "8 or more", kit: "Lots of cones or bibs, 4 hoops or marked squares",
+      setup: "A pile of cones in the middle and a nest in each corner. Teams run one item at a time back to their nest, then start robbing from each other's. Chaos, and brilliant fun.",
+      points: ["One item at a time, no cheating with an armful", "Sprint there, sprint back — walking wastes your turn", "Once the middle is empty, start robbing the other nests", "It never really ends, so call time when they're puffed out"],
+      easier: "Only take from the middle, no robbing.",
+      harder: "Two minutes of robbing, and the team with most at the whistle wins." },
+    { p1: pl(10, 9, CB, "1"), p2: pl(30, 9, CR, "1"), p3: pl(10, 21, CY, "1"), p4: pl(30, 21, "#BF5AF2", "1"),
+      c0: cn(20, 15), c1: cn(19, 14), c2: cn(21, 16), c3: cn(6, 6), c4: cn(34, 6), c5: cn(6, 24), c6: cn(34, 24) },
+    [
+      { n: "Cones in the middle, a nest each corner" },
+      { n: "One item at a time — sprint there", to: { p1: [17, 13], p2: [23, 13], p3: [17, 18], p4: [23, 18] }, d: 0.9 },
+      { n: "And sprint back", to: { p1: [10, 9], p2: [30, 9], p3: [10, 21], p4: [30, 21] }, d: 0.9 },
+      { n: "Middle empty? Start robbing each other", to: { p1: [28, 10], p2: [12, 10], p3: [28, 20], p4: [12, 20] }, d: 1.1 },
+    ]
+  ),
+  mkBank(
+    { id: "warm12", name: "Numbers game", skill: "warmup", level: 1, ages: "U6–U8", pitch: "grid",
+      players: "8 or more", kit: "4 cones",
+      setup: "Everyone jogs around the area. The coach shouts a number and they have to get into groups of exactly that size as fast as possible. Anyone left over does a silly forfeit.",
+      points: ["Keep jogging, don't stand about waiting for the call", "Grab the nearest people — don't hunt for your pals", "Listen: the number changes every time", "Add an action to the call, like sit down or link arms"],
+      easier: "Call numbers that divide evenly so nobody is left out.",
+      harder: "Call awkward numbers, or add a shape they have to make once grouped." },
+    { p1: pl(12, 10, CB, "1"), p2: pl(28, 10, CB, "2"), p3: pl(12, 20, CB, "3"), p4: pl(28, 20, CB, "4"),
+      p5: pl(20, 8, CB, "5"), p6: pl(20, 24, CB, "6"),
+      c1: cn(6, 6), c2: cn(34, 6), c3: cn(6, 26), c4: cn(34, 26) },
+    [
+      { n: "Everyone jogging in the area" },
+      { n: "Keep moving until the call", to: { p1: [16, 14], p2: [24, 13], p3: [15, 19], p4: [26, 19], p5: [22, 11], p6: [19, 22] }, d: 1.1 },
+      { n: "Threes! Grab the nearest people", to: { p1: [17, 13], p2: [19, 13], p5: [21, 12], p3: [17, 20], p4: [21, 20], p6: [19, 21] }, d: 0.9 },
+      { n: "Back to jogging, new number coming", to: { p1: [12, 10], p2: [28, 10], p3: [12, 20], p4: [28, 20], p5: [20, 8], p6: [20, 24] }, d: 1 },
+    ]
+  ),
+  mkBank(
+    { id: "warm13", name: "Traffic lights running", skill: "warmup", level: 1, ages: "U6–U8", pitch: "grid",
+      players: "Any", kit: "4 cones",
+      setup: "No ball. Green means run, amber means jog, red means freeze on the spot. Add heel flicks, knees up and side steps as extra calls once they've got it.",
+      points: ["Freeze means completely still — that's the hard bit", "Change speed properly, don't just amble through amber", "Listen out, the calls come quickly", "Great for the first two minutes of any session"],
+      easier: "Three calls only, spaced well apart.",
+      harder: "Add opposite rules — green means stop, red means go." },
+    { p1: pl(12, 12, CB, "1"), p2: pl(20, 10, CB, "2"), p3: pl(28, 12, CB, "3"), p4: pl(20, 22, CB, "4"),
+      c1: cn(6, 6), c2: cn(34, 6), c3: cn(6, 26), c4: cn(34, 26) },
+    [
+      { n: "No ball, just listening and moving" },
+      { n: "Green — run", to: { p1: [10, 20], p2: [26, 16], p3: [30, 20], p4: [16, 16] }, d: 1 },
+      { n: "Red — freeze completely still", to: { p1: [10.4, 20], p2: [26.4, 16], p3: [30.4, 20], p4: [16.4, 16] }, d: 0.5 },
+      { n: "Amber — jog it out", to: { p1: [13, 16], p2: [22, 13], p3: [27, 16], p4: [19, 19] }, d: 1 },
+    ]
+  ),
+  mkBank(
+    { id: "warm14", name: "Shuttle relays", skill: "warmup", level: 1, ages: "U9–U11", pitch: "grid",
+      players: "6 or more", kit: "8 cones",
+      setup: "Teams in lines, no ball. Sprint to the first cone and back, second cone and back, third and back, then tag the next player. Simple, competitive and it warms them properly.",
+      points: ["Touch the cone with your hand, no shortcuts", "Turn off both feet, not just your favourite one", "Support your team — noise makes them run faster", "Two rounds is enough before you put a ball in"],
+      easier: "Two cones instead of three, and shorter distances.",
+      harder: "Add a backwards leg or a side-step leg between the sprints." },
+    { a1: pl(14, 26, CB, "1"), a2: pl(14, 29, CB, "2"), b1: pl(26, 26, CR, "1"), b2: pl(26, 29, CR, "2"),
+      c1: cn(14, 18), c2: cn(14, 11), c3: cn(14, 4), c4: cn(26, 18), c5: cn(26, 11), c6: cn(26, 4) },
+    [
+      { n: "Teams in lines, three cones each" },
+      { n: "First cone and back", to: { a1: [14, 18], b1: [26, 18] }, d: 0.9 },
+      { n: "Second cone and back", to: { a1: [14, 11], b1: [26, 11] }, d: 1 },
+      { n: "Third, then tag the next one", to: { a1: [14, 4], b1: [26, 4] }, d: 1.1 },
+    ]
+  ),
+  mkBank(
+    { id: "warm15", name: "Mirror your partner", skill: "warmup", level: 1, ages: "U9–U11", pitch: "grid",
+      players: "Pairs", kit: "4 cones",
+      setup: "Pairs face each other a couple of metres apart. One leads with side steps and changes of direction, the other mirrors them exactly. Thirty seconds each, then swap.",
+      points: ["Stay on the balls of your feet, knees soft", "Side steps, don't cross your feet", "Leaders: change often, but stay within touching distance", "It's a warm-up, not a competition to break your partner"],
+      easier: "Slower changes and a bigger gap between the pair.",
+      harder: "Add a forward and backward element, or make it a live 1v1 shadow." },
+    { a1: pl(16, 14, CB, "1"), b1: pl(16, 18, CR, "1"), a2: pl(26, 14, CB, "2"), b2: pl(26, 18, CR, "2"),
+      c1: cn(8, 10), c2: cn(34, 10), c3: cn(8, 22), c4: cn(34, 22) },
+    [
+      { n: "Pairs facing each other" },
+      { n: "Leader moves, partner mirrors", to: { a1: [12, 14], b1: [12, 18], a2: [30, 14], b2: [30, 18] }, d: 0.9 },
+      { n: "Side steps — never cross your feet", to: { a1: [19, 14], b1: [19, 18], a2: [23, 14], b2: [23, 18] }, d: 0.9 },
+      { n: "Thirty seconds, then swap leader", to: { a1: [16, 14], b1: [16, 18], a2: [26, 14], b2: [26, 18] }, d: 0.9 },
+    ]
+  ),
+  mkBank(
+    { id: "warm16", name: "Reaction starts", skill: "warmup", level: 2, ages: "U9–U11", pitch: "grid",
+      players: "4 or more", kit: "6 cones",
+      setup: "Players stand between two cones facing the coach. On the call of a colour or a number they sprint to the matching cone. Sharpens the legs and the ears at the same time.",
+      points: ["Low ready position, weight on the balls of your feet", "First two steps are the ones that matter", "Don't guess — wait for the call", "Short and sharp: five or six goes each, no more"],
+      easier: "Two options only, called clearly with plenty of time between.",
+      harder: "Four options, or start them lying down or facing away." },
+    { p1: pl(16, 18, CB, "1"), p2: pl(24, 18, CB, "2"),
+      c1: cn(10, 8), c2: cn(20, 6), c3: cn(30, 8), c4: cn(10, 26), c5: cn(30, 26), c6: cn(20, 28) },
+    [
+      { n: "Ready position, facing the coach" },
+      { n: "Wait for the call — don't guess", to: { p1: [16, 19], p2: [24, 19] }, d: 0.6 },
+      { n: "Go — first two steps are everything", to: { p1: [11, 10], p2: [29, 10] }, d: 0.7 },
+      { n: "Jog back and reset", to: { p1: [16, 18], p2: [24, 18] }, d: 1 },
+    ]
+  ),
+  mkBank(
+    { id: "warm17", name: "Dynamic warm-up circuit", skill: "warmup", level: 2, ages: "U12+", pitch: "grid",
+      players: "Any", kit: "4 cones",
+      setup: "No ball. Down and back between two cones doing a different movement each time: walking lunges, heel flicks, high knees, open the gate, side steps, then a build-up sprint.",
+      points: ["Quality over speed — a rushed lunge does nothing", "Build the intensity: walking movements first, sprints last", "Finish with two build-up runs at about eighty per cent", "Ten minutes before a match, less before training"],
+      easier: "Four movements instead of six, shorter distance.",
+      harder: "Add a change of direction and a jump to each length." },
+    { p1: pl(14, 26, CB, "1"), p2: pl(20, 26, CB, "2"), p3: pl(26, 26, CB, "3"),
+      c1: cn(14, 6), c2: cn(20, 6), c3: cn(26, 6), c4: cn(20, 28) },
+    [
+      { n: "Lines facing the far cones, no balls" },
+      { n: "Walking lunges out — quality, not speed", to: { p1: [14, 16], p2: [20, 16], p3: [26, 16] }, d: 1.2 },
+      { n: "Heel flicks and high knees back", to: { p1: [14, 26], p2: [20, 26], p3: [26, 26] }, d: 1.1 },
+      { n: "Finish with two build-up sprints", to: { p1: [14, 6], p2: [20, 6], p3: [26, 6] }, d: 0.9 },
+    ]
+  ),
+  mkBank(
+    { id: "warm18", name: "Coach says", skill: "warmup", level: 1, ages: "U6–U8", pitch: "grid",
+      players: "Any", kit: "None",
+      setup: "Simon says, football version. Only do it if the coach says \"coach says\" first. Jog on the spot, touch the ground, star jumps, turn around. Gets attention as well as heart rates.",
+      points: ["It's a listening game as much as a moving game", "Keep the pace up between instructions", "Nobody is ever out — wrong move means one star jump", "Two minutes at the very start of a session works wonders"],
+      easier: "Slow, clear instructions with obvious pauses.",
+      harder: "Speed up, and add movements that sound similar to each other." },
+    { p1: pl(14, 12, CB, "1"), p2: pl(20, 12, CB, "2"), p3: pl(26, 12, CB, "3"),
+      p4: pl(14, 20, CB, "4"), p5: pl(20, 20, CB, "5"), p6: pl(26, 20, CB, "6") },
+    [
+      { n: "Spread out, facing the coach" },
+      { n: "Coach says jog on the spot", to: { p1: [14, 13], p2: [20, 13], p3: [26, 13], p4: [14, 21], p5: [20, 21], p6: [26, 21] }, d: 0.8 },
+      { n: "Coach says touch the ground", to: { p1: [14, 12], p2: [20, 12], p3: [26, 12], p4: [14, 20], p5: [20, 20], p6: [26, 20] }, d: 0.7 },
+      { n: "Star jumps — but I didn't say coach says", to: { p2: [20, 13], p5: [20, 21] }, d: 0.7 },
+    ]
+  ),
+  mkBank(
+    { id: "warm19", name: "Corners", skill: "warmup", level: 1, ages: "U9–U11", pitch: "grid",
+      players: "6 or more", kit: "4 cones of different colours",
+      setup: "Four numbered corners. Players jog in the middle and the coach calls a number — everyone sprints to that corner, does the forfeit there (five star jumps, three press-ups) and comes back to the middle.",
+      points: ["Sprint to the corner, don't jog it", "Do the forfeit properly before you head back", "Keep moving in the middle between calls", "Change the forfeits every round to keep them interested"],
+      easier: "Two corners and no forfeits.",
+      harder: "Call two corners in sequence, or make the last one there pick the next forfeit." },
+    { p1: pl(18, 14, CB, "1"), p2: pl(22, 14, CB, "2"), p3: pl(18, 18, CB, "3"), p4: pl(22, 18, CB, "4"),
+      c1: cn(6, 6), c2: cn(34, 6), c3: cn(6, 26), c4: cn(34, 26) },
+    [
+      { n: "Four corners, everyone in the middle" },
+      { n: "Number two! Sprint, don't jog", to: { p1: [30, 9], p2: [32, 8], p3: [29, 11], p4: [33, 10] }, d: 1 },
+      { n: "Forfeit at the corner, properly", to: { p1: [31, 8], p2: [33, 7], p3: [30, 10], p4: [34, 9] }, d: 0.8 },
+      { n: "Back to the middle, next call coming", to: { p1: [18, 14], p2: [22, 14], p3: [18, 18], p4: [22, 18] }, d: 1.1 },
+    ]
+  ),
+  mkBank(
+    { id: "sk1", name: "Drag back", skill: "skills", level: 1, ages: "U6–U8", pitch: "grid",
+      players: "Any", kit: "1 cone and 1 ball per player",
+      setup: "Dribble at the cone, drag the ball back with the sole of your foot and go the other way. The first move every player should own.",
+      points: ["Sole of the foot on top of the ball, drag it back behind your standing foot", "Sell it first — look like you're going forward", "Turn your body as the ball comes back, don't stand still", "Use it when a defender is right in front of you and there's space behind"],
+      easier: "Walk it through with no cone, just the movement.",
+      harder: "Add a live defender, then use it at full pace off both feet." },
+    { p1: pl(20, 24, CB, "1"), ball: bl(21.2, 25), c1: cn(20, 16), g1: gt(28, 24, 90) },
+    [
+      { n: "Dribble at the cone", carry: { ball: "p1" } },
+      { n: "Sell it — look like you're going through", to: { p1: [20, 19], ball: [21.2, 20] }, d: 0.9 },
+      { n: "Sole on top, drag it back", to: { p1: [20, 20], ball: [21.2, 22.6] }, d: 0.5 },
+      { n: "Turn your body and go", to: { p1: [26, 24], ball: [27.2, 25] }, d: 0.8 },
+    ]
+  ),
+  mkBank(
+    { id: "sk2", name: "Step over", skill: "skills", level: 1, ages: "U6–U8", pitch: "grid",
+      players: "Any", kit: "1 cone and 1 ball per player",
+      setup: "Step over the ball as if you're going one way, then push it away with the outside of the other foot. The classic, and the one they all want to learn.",
+      points: ["Big step over the ball — make them believe it", "Keep the ball still while your foot goes over it", "Push away with the outside of the other foot", "Then accelerate — the trick does nothing on its own"],
+      easier: "Standing still, step over and push away, no dribble.",
+      harder: "Double step over, then use it at full speed against a defender." },
+    { p1: pl(20, 24, CB, "1"), ball: bl(21.2, 25), c1: cn(20, 16), g1: gt(30, 12, 45) },
+    [
+      { n: "Approach the cone at pace", carry: { ball: "p1" } },
+      { n: "Big step over — make them believe it", to: { p1: [20, 19], ball: [21.2, 20] }, d: 0.9 },
+      { n: "Push away with the other foot", to: { p1: [24, 17], ball: [25.2, 18] }, d: 0.5 },
+      { n: "Accelerate — that's the bit that beats them", to: { p1: [29, 12], ball: [30.2, 13] }, d: 0.8 },
+    ]
+  ),
+  mkBank(
+    { id: "sk3", name: "Body feint", skill: "skills", level: 1, ages: "U9–U11", pitch: "grid",
+      players: "Any", kit: "1 cone and 1 ball per player",
+      setup: "No fancy footwork at all. Drop your shoulder and shift your weight one way, then push the ball the other. The most used move in professional football.",
+      points: ["It's the shoulder and the hips that lie, not the feet", "Shift your weight properly — a half-hearted feint fools nobody", "Push the ball with the outside of the foot into the space", "Simplest move there is and the most effective"],
+      easier: "Walk it, exaggerate the shoulder drop.",
+      harder: "Against a live defender, then combine it with a change of pace." },
+    { p1: pl(20, 24, CB, "1"), ball: bl(21.2, 25), c1: cn(20, 16), g1: gt(12, 12, 45) },
+    [
+      { n: "Straight at the defender", carry: { ball: "p1" } },
+      { n: "Drop the shoulder, shift your weight", to: { p1: [22, 19], ball: [23.2, 20] }, d: 0.8 },
+      { n: "Push it the other way", to: { p1: [17, 17], ball: [16, 18] }, d: 0.5 },
+      { n: "Away — no tricks needed", to: { p1: [12, 12], ball: [11, 13] }, d: 0.8 },
+    ]
+  ),
+  mkBank(
+    { id: "sk4", name: "Inside-outside", skill: "skills", level: 2, ages: "U9–U11", pitch: "grid",
+      players: "Any", kit: "2 cones and 1 ball per player",
+      setup: "Touch the ball across your body with the inside of the foot, then immediately back with the outside of the same foot. Quick feet, small touches, and it moves a defender twice.",
+      points: ["Both touches with the same foot, one after the other", "Small and quick — the ball stays under you", "Head up between the touches", "Use it in tight areas where you can't run past anybody"],
+      easier: "Two slow touches on the spot before adding movement.",
+      harder: "At speed through a line of cones, both feet." },
+    { p1: pl(20, 24, CB, "1"), ball: bl(21.2, 25), c1: cn(18, 16), c2: cn(22, 16), g1: gt(20, 5, 0) },
+    [
+      { n: "Two cones for a defender's feet", carry: { ball: "p1" } },
+      { n: "Inside touch across your body", to: { p1: [19, 20], ball: [17.8, 20.6] }, d: 0.7 },
+      { n: "Straight back with the outside", to: { p1: [21, 17], ball: [22.4, 17.4] }, d: 0.5 },
+      { n: "Through the gap and gone", to: { p1: [20, 6], ball: [21.2, 7] }, d: 0.9 },
+    ]
+  ),
+  mkBank(
+    { id: "sk5", name: "Cruyff turn", skill: "skills", level: 2, ages: "U9–U11", pitch: "grid",
+      players: "Any", kit: "1 cone and 1 ball per player",
+      setup: "Shape to shoot or cross, then wrap your foot around the ball and drag it back behind your standing leg. Named after the man who did it at a World Cup, and still unstoppable.",
+      points: ["Sell the shot first — the shoulder and the backlift do the work", "Foot wraps around the front of the ball, inside of the foot", "Drag it behind your standing leg, then spin the other way", "Best used near the byline or when a defender jumps to block"],
+      easier: "Standing still: shape to shoot, wrap, drag. Ten each foot.",
+      harder: "At pace with a defender closing, then finish with a pass or shot." },
+    { p1: pl(20, 22, CB, "1"), ball: bl(21.2, 23), c1: cn(20, 14), g1: gt(20, 28, 0) },
+    [
+      { n: "Look like you're going to shoot", carry: { ball: "p1" } },
+      { n: "Big backlift — sell it", to: { p1: [20, 18], ball: [21.2, 19] }, d: 0.9 },
+      { n: "Wrap the foot and drag it back", to: { p1: [20, 18.6], ball: [20.6, 21] }, d: 0.5 },
+      { n: "Spin away the other side", to: { p1: [20, 26], ball: [21.2, 27] }, d: 0.9 },
+    ]
+  ),
+  mkBank(
+    { id: "sk6", name: "Scissors", skill: "skills", level: 2, ages: "U9–U11", pitch: "grid",
+      players: "Any", kit: "1 cone and 1 ball per player",
+      setup: "Swing your foot over and around the front of the ball without touching it, then take it the other way with the outside of the other foot. Flashier cousin of the step over.",
+      points: ["The foot goes over and around the front, never touching the ball", "Keep your knees bent and stay balanced", "Take it away with the outside of the far foot", "One scissor is plenty — three in a row just slows you down"],
+      easier: "Standing still, exaggerate the swing, no dribbling.",
+      harder: "At pace, then a double scissor against a live defender." },
+    { p1: pl(20, 24, CB, "1"), ball: bl(21.2, 25), c1: cn(20, 16), g1: gt(11, 14, 45) },
+    [
+      { n: "At the defender with pace", carry: { ball: "p1" } },
+      { n: "Foot over and around the front", to: { p1: [21, 19], ball: [22.2, 20] }, d: 0.9 },
+      { n: "Away with the outside of the far foot", to: { p1: [17, 17], ball: [15.8, 17.8] }, d: 0.5 },
+      { n: "One scissor, then go", to: { p1: [11, 14], ball: [10, 15] }, d: 0.8 },
+    ]
+  ),
+  mkBank(
+    { id: "sk7", name: "The chop", skill: "skills", level: 2, ages: "U12+", pitch: "grid",
+      players: "Any", kit: "1 cone and 1 ball per player",
+      setup: "Running at pace, chop the ball back across your body with the inside of the foot and change direction almost ninety degrees. Brilliant for wingers going nowhere.",
+      points: ["You need speed first — the chop only works if they're running with you", "Inside of the foot across the ball, sharp and downward", "Plant hard and push off the outside foot", "Use it when a defender has matched your run down the line"],
+      easier: "Jog into it, exaggerate the plant and the push off.",
+      harder: "Full pace with a defender alongside, then cross or shoot immediately." },
+    { p1: pl(28, 26, CB, "1"), ball: bl(29.2, 27), c1: cn(28, 16), g1: gt(14, 14, 45) },
+    [
+      { n: "Driving down the line at pace", carry: { ball: "p1" } },
+      { n: "Get them running with you first", to: { p1: [28, 19], ball: [29.2, 20] }, d: 0.8 },
+      { n: "Chop it across your body", to: { p1: [27, 18], ball: [24, 18.6] }, d: 0.5 },
+      { n: "Plant, push off, change direction", to: { p1: [15, 14], ball: [14, 15] }, d: 0.9 },
+    ]
+  ),
+  mkBank(
+    { id: "sk8", name: "La croqueta", skill: "skills", level: 3, ages: "U12+", pitch: "grid",
+      players: "Any", kit: "2 cones and 1 ball per player",
+      setup: "Iniesta's move. Push the ball from one foot to the other in a single quick movement, sliding it past the defender's leg as they commit to the tackle.",
+      points: ["Wait for them to commit — the move needs their leg to be planted", "One touch inside foot to inside foot, low and fast", "Your body goes past on the other side of them", "Tight areas and central midfield, not out wide"],
+      easier: "Standing still, roll it foot to foot until it's smooth.",
+      harder: "Against a live defender in a tight channel, at full speed." },
+    { p1: pl(20, 22, CB, "1"), ball: bl(21.2, 23), c1: cn(19, 15), c2: cn(21, 15), g1: gt(20, 5, 0) },
+    [
+      { n: "Defender committing in a tight area", carry: { ball: "p1" } },
+      { n: "Wait for them to plant their leg", to: { p1: [20, 18], ball: [21.2, 19] }, d: 0.9 },
+      { n: "Inside foot to inside foot, one movement", to: { p1: [20, 17], ball: [18.4, 17.4] }, d: 0.4 },
+      { n: "Body past on the other side", to: { p1: [20, 6], ball: [19, 7] }, d: 0.8 },
+    ]
+  ),
+  mkBank(
+    { id: "sk9", name: "Elastico", skill: "skills", level: 3, ages: "U12+", pitch: "grid",
+      players: "Any", kit: "1 cone and 1 ball per player",
+      setup: "The hardest one here. Push the ball out with the outside of the foot then snap it back inside with the same foot in one movement. Months of practice, and worth it.",
+      points: ["It's one movement, not two — out and back without the foot leaving the ball", "Ankle does the work, keep it loose", "Expect to be rubbish at it for weeks", "Practise alone with no defender until it's automatic"],
+      easier: "Standing still, exaggerate the two halves slowly before joining them up.",
+      harder: "At pace, then reverse it — inside then snap outside." },
+    { p1: pl(20, 24, CB, "1"), ball: bl(21.2, 25), c1: cn(20, 16), g1: gt(29, 13, 45) },
+    [
+      { n: "Approach with the ball on your strong foot", carry: { ball: "p1" } },
+      { n: "Outside of the foot pushes it out", to: { p1: [20, 20], ball: [18, 20.6] }, d: 0.6 },
+      { n: "Snap it back inside, same foot", to: { p1: [21, 18], ball: [23.4, 18.4] }, d: 0.4 },
+      { n: "Away before they've recovered", to: { p1: [28, 13], ball: [29.2, 14] }, d: 0.8 },
+    ]
+  ),
+  mkBank(
+    { id: "sk10", name: "Maradona spin", skill: "skills", level: 3, ages: "U12+", pitch: "grid",
+      players: "Any", kit: "1 cone and 1 ball per player",
+      setup: "The roulette. Two soles on the ball as you spin three hundred and sixty degrees through the defender, dragging it with you. Spectacular when it works.",
+      points: ["First sole drags it as you start to turn, second sole finishes the drag", "Spin through the defender, not around them", "Stay low or you'll fall over", "High risk — brilliant in midfield, foolish in your own box"],
+      easier: "Walk the spin with no ball, then add it slowly.",
+      harder: "Full speed with a defender, coming out of it into a pass." },
+    { p1: pl(20, 22, CB, "1"), ball: bl(21.2, 23), c1: cn(20, 15), g1: gt(20, 5, 0) },
+    [
+      { n: "Head straight for the defender", carry: { ball: "p1" } },
+      { n: "First sole on the ball as you turn", to: { p1: [20, 18], ball: [19.4, 19.4] }, d: 0.7 },
+      { n: "Second sole finishes the drag", to: { p1: [21, 16], ball: [22, 17] }, d: 0.5 },
+      { n: "Out the other side, stay low", to: { p1: [20, 6], ball: [21.2, 7] }, d: 0.9 },
+    ]
+  ),
+  mkBank(
     { id: "set1", name: "Corner: near post flick", skill: "setpiece", level: 2, ages: "U12+", pitch: "third",
       players: "6 or more", kit: "Balls, one goal",
       setup: "An inswinging corner to the near post, where the first attacker flicks it on and two runners attack the middle and the back post. Simple, and it still works at every level.",
@@ -2267,6 +2631,30 @@ const SQUAD = {
   warm4: [2, 30, "Two or more, a ball each."],
   warm5: [1, 30, "Any number. One line per two players keeps it moving."],
   warm6: [3, 20, "Three plus a keeper works. Six or more, run both sides of the goal at once."],
+  warm7: [5, 24, "Five: three swimmers and two sharks. Above twelve, use a bigger area."],
+  warm8: [4, 24, "Four works with one tagger. Add a tagger for every six players."],
+  warm9: [4, 24, "Four: three crossing and one catcher. Widen the river with more."],
+  warm10: [4, 20, "Four minimum, and a bib each. Above twelve, split into two areas."],
+  warm11: [4, 24, "Four gives one per nest. Uneven teams are fine, it evens out."],
+  warm12: [6, 24, "Six or more, otherwise the groups get silly. Call numbers that divide evenly."],
+  warm13: [1, 30, "Any number at all — no ball, no partner needed."],
+  warm14: [4, 24, "Four gives two teams of two. Uneven, the short team sends one player twice."],
+  warm15: [2, 30, "Pairs. Odd one out mirrors the coach."],
+  warm16: [2, 20, "Two or more. Coach makes the calls, so numbers barely matter."],
+  warm17: [1, 30, "Any number. Three or four lines side by side keeps it moving."],
+  warm18: [1, 30, "Any number, no kit at all."],
+  warm19: [4, 24, "Four or more. Works right up to a full squad."],
+
+  sk1: [1, 30, "One player and a ball. This is a solo move — everybody works at once."],
+  sk2: [1, 30, "One player and a ball each, no partner needed."],
+  sk3: [1, 30, "Solo to learn it, then a partner to try it against."],
+  sk4: [1, 30, "Solo. Two cones each and everybody goes at the same time."],
+  sk5: [1, 30, "Solo to learn, then add a defender jumping to block."],
+  sk6: [1, 30, "Solo. A ball each means nobody queues."],
+  sk7: [1, 30, "Solo to learn, but it needs a defender alongside to be worth using."],
+  sk8: [1, 30, "Solo to groove it, then a live defender in a tight channel."],
+  sk9: [1, 30, "Solo, and expect weeks of it before a defender is involved."],
+  sk10: [1, 30, "Solo. Plenty of space each — they will fall over at first."],
 
   set1: [5, 16, "Five: taker, three in the box, a keeper. More lets you add defenders."],
   set2: [4, 14, "Four: taker, short player, one in the box, keeper."],
@@ -2762,7 +3150,7 @@ function DrillDesigner() {
   const [editSession, setEditSession] = useState(null);
   const [bankFilter, setBankFilter] = useState({ skill: "all", level: "all", age: "all", fav: false });
   const [query, setQuery] = useState("");
-  const [plan, setPlan] = useState({ mins: 60, kids: 10, focus: "passing", count: 3, games: true, gameMins: 15 });
+  const [plan, setPlan] = useState({ mins: 60, kids: 10, focuses: ["passing"], count: 3, warm: true, warmMins: 10, games: true, gameMins: 15 });
   const [screen, setScreen] = useState("home");
   const [formation, setFormation] = useState(null);
   const [format, setFormat] = useState("7v7");
@@ -3337,26 +3725,28 @@ function DrillDesigner() {
     const take = (pool, n) => shuffled(pool).slice(0, n);
     const MAIN = ["passing", "firsttouch", "dribbling", "shooting", "defending"];
 
-    const warm = take(BANK.filter((d) => d.skill === "warmup" && fits(d)), 1);
+    const warm = plan.warm ? take(BANK.filter((d) => d.skill === "warmup" && fits(d)), 1) : [];
+    const chosen = plan.focuses.length ? plan.focuses : MAIN;
     let mains = [];
-    if (plan.focus === "mixed") {
-      const perSkill = shuffled(MAIN);
-      for (const sk of perSkill) {
+    /* deal the drills round-robin across everything they picked */
+    const pools = shuffled(chosen).map((sk) => shuffled(BANK.filter((d) => d.skill === sk && fits(d))));
+    let round = 0;
+    while (mains.length < plan.count && round < 12) {
+      for (const pool of pools) {
         if (mains.length >= plan.count) break;
-        const one = take(BANK.filter((d) => d.skill === sk && fits(d)), 1);
-        mains = mains.concat(one);
+        const next = pool[round];
+        if (next && mains.indexOf(next) < 0) mains.push(next);
       }
-    } else {
-      mains = take(BANK.filter((d) => d.skill === plan.focus && fits(d)), plan.count)
-        .sort((a, b) => a.level - b.level);
+      round++;
     }
+    mains.sort((a, b) => a.level - b.level);
     if (mains.length < plan.count) {
       const extra = take(BANK.filter((d) => MAIN.indexOf(d.skill) >= 0 && fits(d) && mains.indexOf(d) < 0), plan.count - mains.length);
       mains = mains.concat(extra);
     }
     const game = plan.games ? take(BANK.filter((d) => d.skill === "ssg" && fits(d)), 1) : [];
 
-    const warmMins = plan.mins >= 75 ? 15 : 10;
+    const warmMins = plan.warm ? plan.warmMins : 0;
     const gameMins = plan.games ? plan.gameMins : 0;
     const left = Math.max(plan.count * 5, plan.mins - warmMins - gameMins);
     const each = Math.max(5, Math.round(left / Math.max(1, mains.length) / 5) * 5);
@@ -3367,7 +3757,9 @@ function DrillDesigner() {
       ...mains.map((d) => row(d, each)),
       ...game.map((d) => row(d, gameMins)),
     ];
-    const label = plan.focus === "mixed" ? "Mixed" : (SKILLS.find((sk) => sk.id === plan.focus) || {}).label;
+    const label = plan.focuses.length === 1
+      ? (SKILLS.find((sk) => sk.id === plan.focuses[0]) || {}).label
+      : plan.focuses.length ? "Mixed" : "Everything";
     const total = items.reduce((a, b) => a + b.minutes, 0);
     const ns = { id: uid(), name: `${label} session`, date: `${plan.kids} players · ${total} min`, items };
     saveSessions([ns, ...sessions]);
@@ -3414,6 +3806,7 @@ function DrillDesigner() {
           <div className="row">
             <button className="ic" onClick={undo} disabled={!history.length} aria-label="Undo"><Undo2 size={18} /></button>
             <button className="ic" onClick={() => startRun([{ drill, minutes: 0, note: "" }], 0)} aria-label="Run mode"><Timer size={18} /></button>
+          <button className="ic" onClick={() => { setTab("bank"); setScreen("drills"); }} aria-label="Drill library"><FolderOpen size={18} /></button>
             <button className="ic primary" onClick={() => setSheet("export")} aria-label="Export"><Share2 size={18} /></button>
           </div>
         </header>
@@ -3869,7 +4262,7 @@ function DrillDesigner() {
           <Row icon={<Play size={18} />} label="Open in the designer" sub={`${bankItem.steps.length} phases — edit it like your own`}
             onClick={() => openDrill(bankItem, true)} />
           <Row icon={<Timer size={18} />} label="Run it pitchside" sub="Full screen, big text, timer"
-            onClick={() => startRun([{ drill: bankItem, minutes: 10, note: bankItem.setup }], 0)} />
+            onClick={() => startRun([{ drill: bankItem, minutes: 0, note: bankItem.setup }], 0)} />
         </Sheet>
       )}
 
@@ -3967,14 +4360,33 @@ function DrillDesigner() {
 
           <div className="qcard">
             <span className="qlabel">What are we working on?</span>
+            <span className="qhint">Pick as many as you like</span>
             <div className="chips">
-              {SKILLS.filter((sk) => ["passing", "firsttouch", "dribbling", "shooting", "defending"].indexOf(sk.id) >= 0).map((sk) => (
-                <button key={sk.id} className={"chip" + (plan.focus === sk.id ? " on" : "")}
-                  onClick={() => setPlan({ ...plan, focus: sk.id })}>{sk.label}</button>
-              ))}
-              <button className={"chip" + (plan.focus === "mixed" ? " on" : "")}
-                onClick={() => setPlan({ ...plan, focus: "mixed" })}>A bit of everything</button>
+              {SKILLS.filter((sk) => ["warmup", "ssg"].indexOf(sk.id) < 0).map((sk) => {
+                const on = plan.focuses.indexOf(sk.id) >= 0;
+                return (
+                  <button key={sk.id} className={"chip" + (on ? " on" : "")}
+                    onClick={() => setPlan({ ...plan, focuses: on ? plan.focuses.filter((f) => f !== sk.id) : [...plan.focuses, sk.id] })}>
+                    {sk.label}
+                  </button>
+                );
+              })}
             </div>
+          </div>
+
+          <div className="qcard">
+            <span className="qlabel">Start with a warm-up?</span>
+            <div className="chips">
+              <button className={"chip" + (plan.warm ? " on" : "")} onClick={() => setPlan({ ...plan, warm: true })}>Yes</button>
+              <button className={"chip" + (!plan.warm ? " on" : "")} onClick={() => setPlan({ ...plan, warm: false })}>No</button>
+            </div>
+            {plan.warm && (
+              <div className="sliderow">
+                <input className="qslider" type="range" min={5} max={20} step={5} value={plan.warmMins}
+                  onChange={(e) => setPlan({ ...plan, warmMins: +e.target.value })} />
+                <b>{plan.warmMins} min</b>
+              </div>
+            )}
           </div>
 
           <div className="qcard">
@@ -4002,7 +4414,7 @@ function DrillDesigner() {
           </div>
 
           <Row icon={<Sparkle />} label="Build the session"
-            sub={`${plan.mins} minutes · ${plan.kids} players · ${plan.count} drill${plan.count > 1 ? "s" : ""}${plan.games ? " + a game" : ""}`}
+            sub={`${plan.mins} min · ${plan.kids} players · ${plan.warm ? "warm-up + " : ""}${plan.count} drill${plan.count > 1 ? "s" : ""}${plan.games ? " + a game" : ""}`}
             onClick={buildPlan} />
         </Sheet>
       )}
@@ -4273,9 +4685,10 @@ function RunMode({ items, startIndex, onClose }) {
           <h2>{drill.name}</h2>
           {items.length > 1 && <span>Drill {i + 1} of {items.length}</span>}
         </div>
-        <button className={"runtimer" + (over ? " over" : nearly ? " nearly" : "")}
+        <button className={"runtimer" + (over ? " over" : nearly ? " nearly" : "") + (!ticking && !elapsed ? " idle" : "")}
           onClick={() => setTicking(!ticking)}>
-          {over ? "Time" : clock(left)}
+          {ticking ? <Pause size={15} /> : <Play size={15} />}
+          <span>{!ticking && !elapsed ? "Start" : over ? "Time" : clock(left)}</span>
         </button>
         <button className="runclose" onClick={onClose} aria-label="Leave run mode"><X size={20} /></button>
       </div>
@@ -4747,10 +5160,13 @@ input { font: inherit; }
 .runtitles h2 { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .runtitles span { font-size: 12px; color: rgba(255,255,255,0.5); }
 .runtimer {
-  flex: 0 0 auto; font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums;
-  padding: 6px 14px; border-radius: 12px; background: rgba(255,255,255,0.1); color: #fff;
-  letter-spacing: -0.5px;
+  flex: 0 0 auto; display: flex; align-items: center; gap: 8px;
+  font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums;
+  padding: 7px 15px; border-radius: 13px; background: rgba(255,255,255,0.1); color: #fff;
+  letter-spacing: -0.5px; transition: background .15s;
 }
+.runtimer.idle { background: #30C463; color: #06240F; font-size: 17px; letter-spacing: -0.2px; box-shadow: 0 4px 16px rgba(48,196,99,0.35); }
+.runtimer:active { transform: scale(0.96); }
 .runtimer.nearly { background: rgba(255,159,10,0.22); color: #FFCE7A; }
 .runtimer.over { background: rgba(255,59,48,0.25); color: #FF9F9F; animation: pulse 1s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: 0.55 } }
@@ -4842,6 +5258,7 @@ input { font: inherit; }
   box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 .qlabel { font-size: 14px; font-weight: 600; color: #1C1C1E; }
+.qhint { font-size: 12px; color: #8E8E93; margin-top: -5px; }
 .sliderow { display: flex; align-items: center; gap: 12px; }
 .qslider { flex: 1; min-width: 0; accent-color: #007AFF; height: 26px; }
 .sliderow b { min-width: 62px; text-align: right; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
