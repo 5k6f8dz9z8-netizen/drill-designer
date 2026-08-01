@@ -99,6 +99,7 @@
 
 
 
+
 /* ---------------------------------------------------- standalone runtime */
 const { useState, useRef, useEffect, useMemo, useCallback } = React;
 
@@ -371,12 +372,7 @@ const GATE = {
      optional and the code stops working at the end of that day. */
   codes: [
     { label: "Christopher", hash: "4641f476d80feb981cb2fd33547adc4130410e698075a5336243965596ad8306", admin: true },
-    { label: "Arron", hash: "572a61a3df02ec61ea71622cd372091dea4c764fc227c08be144c7cdf7bce2e1", expires: "2026-08-31" },
-    { label: "Davie", hash: "ea2ee89f9ab4fbc1a7fe2fc18ee2fe5ab66cbef953f6bcf1f25806b8f9b90ae0", expires: "2026-08-31" },
-    { label: "Greg", hash: "6dae9fb491e54ad08a14a3d0ca4598165b4db7db77dead6782381aaee0bb7e1f", expires: "2026-08-31" },
-    { label: "Chris", hash: "8e7d773de92c9bba4a631ad63c1a2c13a248f47b8c5b65fbb2b8b3135507eab0", expires: "2026-08-31" },
-    { label: "Jenna", hash: "775320c46c36f3714fe7a1cc4c617c1913ea230b7cf2367e88701acaad7752fe", expires: "2026-08-31" },
-    { label: "Steven", hash: "5a8a6df6e94aaf6ea2e8dfd57b0a61aa008c01fbbcb24dadf22ea38e1c82f7a4", expires: "2026-08-31" },
+    { label: "Guest", hash: "b50551d758977f8c0888ea017c87d1f983d78a13d7c6e08c25f784f527f0fed3" },
   ],
 };
 
@@ -3424,6 +3420,7 @@ function DrillDesigner() {
   const [bankFilter, setBankFilter] = useState({ skill: "all", level: "all", age: "all", fav: false });
   const [query, setQuery] = useState("");
   const [locked, setLocked] = useState(true);
+  const [confirm, setConfirm] = useState(null);
   const [plan, setPlan] = useState({ mins: 60, kids: 10, focuses: ["passing"], count: 3, warm: true, warmMins: 10, games: true, gameMins: 15 });
   const [screen, setScreen] = useState("home");
   const [formation, setFormation] = useState(null);
@@ -3477,6 +3474,16 @@ function DrillDesigner() {
     catch (e) { flash("Couldn't save — storage unavailable"); return false; }
   };
 
+  const deleteSaved = async (d) => {
+    const next = library.filter((x) => x.id !== d.id);
+    /* strip it out of any session too, so nothing points at a drill that's gone */
+    const cleaned = sessions.map((ss) => ({ ...ss, items: (ss.items || []).filter((it) => it.drillId !== d.id) }));
+    const touched = cleaned.some((ss, i) => ss.items.length !== (sessions[i].items || []).length);
+    if (touched) saveSessions(cleaned);
+    if (await persist("drills-v2", next, setLibrary)) flash(`Deleted “${d.name}”`);
+    setConfirm(null);
+  };
+
   const saveDrill = async () => {
     const next = [{ ...deepClone(drill), saved: Date.now() }, ...library.filter((d) => d.id !== drill.id)].slice(0, 60);
     if (await persist("drills-v2", next, setLibrary)) flash("Drill saved");
@@ -3487,7 +3494,12 @@ function DrillDesigner() {
   const toggleFav = (id) =>
     persist("favs-v1", favs.indexOf(id) >= 0 ? favs.filter((f) => f !== id) : [id, ...favs], setFavs);
 
-  const startRun = (items, index) => { setSheet(null); setRun({ items: items.filter((x) => x.drill), index: index || 0 }); };
+  const startRun = (items, index) => {
+    const live = items.filter((x) => x.drill);
+    if (!live.length) { flash("No drills left in this session to run"); return; }
+    setSheet(null);
+    setRun({ items: live, index: clamp(index || 0, 0, live.length - 1) });
+  };
 
   /* ---- viewport */
   useEffect(() => {
@@ -4047,7 +4059,13 @@ function DrillDesigner() {
     saveSessions([ns, ...sessions]);
     setEditSession(ns);
     setSheet("session");
-    flash(`${items.length} drills, ${total} minutes`);
+    const missing = [];
+    if (plan.warm && !warm.length) missing.push("warm-up");
+    if (plan.games && !game.length) missing.push("game");
+    if (mains.length < plan.count) missing.push(`only ${mains.length} drill${mains.length === 1 ? "" : "s"}`);
+    flash(missing.length
+      ? `Built with ${items.length} drills — nothing suitable for ${plan.kids} players for the ${missing.join(" or ")}`
+      : `${items.length} drills, ${total} minutes`);
   };
 
   /* ---- session helpers */
@@ -4481,9 +4499,15 @@ function DrillDesigner() {
               )}
               {library.length === 0 ? <p className="hint">Nothing saved yet. Saved drills stay on this device.</p> :
                 library.filter((d) => !query || d.name.toLowerCase().indexOf(query.toLowerCase()) >= 0).map((d) => (
-                  <Row key={d.id} badge={d.steps.length} label={d.name}
-                    sub={`${PITCHES[d.pitch] ? PITCHES[d.pitch].label : ""} · ${d.objects.length} items`}
-                    onClick={() => openDrill(d, false)} />
+                  <div key={d.id} className="listrow" role="button" tabIndex={0} onClick={() => openDrill(d, false)}>
+                    <span className="mini">{d.steps.length}</span>
+                    <span className="rowtext">{d.name}
+                      <em>{PITCHES[d.pitch] ? PITCHES[d.pitch].label : ""} · {d.objects.length} items</em>
+                    </span>
+                    <button className="starbtn danger" aria-label={`Delete ${d.name}`}
+                      onClick={(e) => { e.stopPropagation(); setConfirm(d); }}><Trash2 size={16} /></button>
+                    <ChevronRight size={16} className="chev" />
+                  </div>
                 ))}
             </>
           )}
@@ -4773,6 +4797,14 @@ function DrillDesigner() {
           </div>
           <Row icon={<Play size={18} />} label="Open in the designer"
             sub="Move players, add runs, and animate it" onClick={() => openDrill(formation, true)} />
+        </Sheet>
+      )}
+
+      {confirm && (
+        <Sheet title="Delete this drill?" onClose={() => setConfirm(null)}>
+          <p className="hint">“{confirm.name}” will be removed from My drills on this device. This cannot be undone.</p>
+          <Row icon={<Trash2 size={18} />} label={`Delete “${confirm.name}”`} danger onClick={() => deleteSaved(confirm)} />
+          <Row icon={<X size={18} />} label="Keep it" onClick={() => setConfirm(null)} />
         </Sheet>
       )}
 
@@ -5697,6 +5729,8 @@ input { font: inherit; }
 }
 .starbtn { flex: 0 0 auto; width: 32px; height: 32px; border-radius: 16px; display: grid; place-items: center; color: #C7C7CC; }
 .starbtn.on { color: #FFB800; }
+.starbtn.danger { color: #C7C7CC; }
+.starbtn.danger:active { color: #FF3B30; }
 .starbtn.on svg { fill: currentColor; }
 .chip.star { display: inline-flex; align-items: center; gap: 5px; }
 .chip.star.on svg { fill: currentColor; }
